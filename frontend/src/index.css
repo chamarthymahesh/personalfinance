@@ -58,7 +58,8 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
 }
@@ -159,38 +160,34 @@ h1, h2, h3, h4, h5, h6 {
   position: relative;
 }
 
-.nav-tooltip {
-  display: none;
-  position: absolute;
-  left: calc(100% + 20px);
-  top: 50%;
-  transform: translateY(-50%);
+.nav-link[data-tooltip] {
+  position: relative;
+}
+
+.nav-link[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: fixed;
+  left: 95px;
+  margin-top: -12px;
   background: #0f172a;
   color: #ffffff;
-  padding: 0.5rem 0.85rem;
+  padding: 0.45rem 0.8rem;
   border-radius: 6px;
-  font-size: 0.85rem;
+  font-size: 0.825rem;
   font-weight: 500;
   white-space: nowrap;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.15);
   z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
 }
 
-.nav-tooltip::before {
-  content: '';
-  position: absolute;
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent #0f172a transparent transparent;
-}
-
-.nav-link:hover .nav-tooltip {
-  display: block;
+.nav-link[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 .sidebar-badge {
