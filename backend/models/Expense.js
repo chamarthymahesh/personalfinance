@@ -15,7 +15,7 @@ const ExpenseSchema = new mongoose.Schema({
   },
   frequency: {
     type: String,
-    enum: ['Monthly', 'Yearly', 'One-time'],
+    enum: ['Monthly', 'Quarterly', 'Half-Yearly', 'Yearly', 'One-time'],
     required: true
   },
   dueDate: {
