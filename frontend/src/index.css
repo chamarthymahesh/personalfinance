@@ -58,8 +58,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
 }
@@ -163,19 +162,19 @@ h1, h2, h3, h4, h5, h6 {
 .nav-tooltip {
   display: none;
   position: absolute;
-  left: calc(100% + 14px);
+  left: calc(100% + 20px);
   top: 50%;
   transform: translateY(-50%);
   background: #0f172a;
   color: #ffffff;
-  padding: 0.4rem 0.75rem;
+  padding: 0.5rem 0.85rem;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 500;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-sidebar);
-  z-index: 1000;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 99999;
   pointer-events: none;
 }
 

@@ -246,7 +246,7 @@ const groupedCategories = useMemo(() => {
         </ul>
 
         {/* Dynamic Category Sections — scrollable area */}
-        <div style={{flex: 1, overflowY: 'auto', overflowX: 'hidden'}}>
+        <div style={{flex: 1, overflowY: isSidebarCollapsed ? 'visible' : 'auto'}}>
           {['expenses', 'credit_cards', 'investments', 'insurances', 'lending', 'loans', 'properties', 'other'].map(mod => {
             const cats = groupedCategories[mod];
             if (!cats || cats.length === 0) return null;
