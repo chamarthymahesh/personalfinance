@@ -143,24 +143,24 @@ router.put('/expenses/:id/pay', upload.single('paymentProof'), async (req, res) 
     await expense.save();
 
     // Auto generate next bill if recurring
+    const nextDate = new Date(expense.dueDate);
+    let shouldCreate = false;
+
     if (expense.frequency === 'Monthly' && expense.dueDate) {
-      const nextDate = new Date(expense.dueDate);
       nextDate.setMonth(nextDate.getMonth() + 1);
-      
-      const nextExpense = new Expense({
-        title: expense.title,
-        category: expense.category,
-        amount: expense.amount,
-        frequency: expense.frequency,
-        dueDate: nextDate,
-        details: expense.details,
-        status: 'Unpaid'
-      });
-      await nextExpense.save();
+      shouldCreate = true;
+    } else if (expense.frequency === 'Quarterly' && expense.dueDate) {
+      nextDate.setMonth(nextDate.getMonth() + 3);
+      shouldCreate = true;
+    } else if (expense.frequency === 'Half-Yearly' && expense.dueDate) {
+      nextDate.setMonth(nextDate.getMonth() + 6);
+      shouldCreate = true;
     } else if (expense.frequency === 'Yearly' && expense.dueDate) {
-      const nextDate = new Date(expense.dueDate);
       nextDate.setFullYear(nextDate.getFullYear() + 1);
-      
+      shouldCreate = true;
+    }
+
+    if (shouldCreate) {
       const nextExpense = new Expense({
         title: expense.title,
         category: expense.category,
