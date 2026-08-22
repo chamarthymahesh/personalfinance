@@ -225,19 +225,19 @@ const groupedCategories = useMemo(() => {
         </div>
         
         <ul className="nav-links" style={{padding: '1rem 1rem 0'}}>
-          <li className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}} data-tooltip={isSidebarCollapsed ? "Dashboard" : undefined}>
+          <li className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
             <div className="nav-link-content">
               <LayoutDashboard size={18} />
               {!isSidebarCollapsed && <span>Dashboard</span>}
             </div>
           </li>
-          <li className={`nav-link ${activeTab === 'due-alerts' ? 'active' : ''}`} onClick={() => setActiveTab('due-alerts')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}} data-tooltip={isSidebarCollapsed ? "Due alerts" : undefined}>
+          <li className={`nav-link ${activeTab === 'due-alerts' ? 'active' : ''}`} onClick={() => setActiveTab('due-alerts')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
             <div className="nav-link-content">
               <Bell size={18} />
               {!isSidebarCollapsed && <span>Due alerts</span>}
             </div>
           </li>
-          <li className={`nav-link ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}} data-tooltip={isSidebarCollapsed ? "Reports" : undefined}>
+          <li className={`nav-link ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
             <div className="nav-link-content">
               <BarChart2 size={18} />
               {!isSidebarCollapsed && <span>Reports</span>}
@@ -255,7 +255,7 @@ const groupedCategories = useMemo(() => {
                 {!isSidebarCollapsed && <div className="sidebar-section-title">{moduleNames[mod] || mod}</div>}
                 <ul className="nav-links">
                   {cats.map(cat => (
-                    <li key={cat._id} className={`nav-link ${activeTab === cat._id ? 'active' : ''}`} onClick={() => setActiveTab(cat._id)} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}} data-tooltip={isSidebarCollapsed ? cat.name : undefined}>
+                    <li key={cat._id} className={`nav-link ${activeTab === cat._id ? 'active' : ''}`} onClick={() => setActiveTab(cat._id)} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
                       <div className="nav-link-content">
                         {getSidebarIcon(cat.name)}
                         {!isSidebarCollapsed && <span>{cat.name}</span>}
@@ -271,7 +271,7 @@ const groupedCategories = useMemo(() => {
           })}
           
           <ul className="nav-links" style={{padding: '0'}}>
-            <li className={`nav-link`} onClick={() => setActiveTab('settings')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', color: 'var(--text-muted)'}} data-tooltip={isSidebarCollapsed ? "Add new..." : undefined}>
+            <li className={`nav-link`} onClick={() => setActiveTab('settings')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', color: 'var(--text-muted)'}}>
               <div className="nav-link-content">
                 <Plus size={18} />
                 {!isSidebarCollapsed && <span>Add new...</span>}
@@ -282,7 +282,7 @@ const groupedCategories = useMemo(() => {
 
         
         <ul className="nav-links" style={{padding: '1rem'}}>
-          <li className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', borderTop: '1px solid var(--border-sidebar)', paddingTop: '1rem', marginTop: '0.5rem'}} data-tooltip={isSidebarCollapsed ? "Admin Settings" : undefined}>
+          <li className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', borderTop: '1px solid var(--border-sidebar)', paddingTop: '1rem', marginTop: '0.5rem'}}>
             <div className="nav-link-content">
               <Settings size={18} />
               {!isSidebarCollapsed && <span>Admin Settings</span>}
