@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    ports:
+      - "9001:5000"
+    volumes:
+      - backend_uploads:/app/uploads
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+        - VITE_SERVER_URL=${VITE_SERVER_URL}
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "9000:80"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  backend_uploads:

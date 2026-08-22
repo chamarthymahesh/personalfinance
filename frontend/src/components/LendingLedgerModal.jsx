@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/v1';
+import { API_URL, SERVER_URL } from '../config';
+
 
 export default function LendingLedgerModal({ bill, onClose }) {
   const [ledger, setLedger] = useState(null);
@@ -484,7 +485,7 @@ export default function LendingLedgerModal({ bill, onClose }) {
                               {entry.paymentMode && <div style={{fontSize: '0.7rem', color: '#1e293b', marginTop: '0.2rem'}}>Mode: {entry.paymentMode}</div>}
                               {entry.proofUrl && (
                                 <div style={{marginTop: '0.2rem'}}>
-                                  <a href={`http://localhost:5000${entry.proofUrl}`} target="_blank" rel="noreferrer" style={{color: '#3b82f6', textDecoration: 'underline'}}>View Proof</a>
+                                  <a href={`${SERVER_URL}${entry.proofUrl}`} target="_blank" rel="noreferrer" style={{color: '#3b82f6', textDecoration: 'underline'}}>View Proof</a>
                                 </div>
                               )}
                             </td>

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Trash2, Settings2, Edit2, Check, X } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api/v1';
+import { API_URL } from '../config';
+
 
 export default function Settings() {
   const [categories, setCategories] = useState([]);

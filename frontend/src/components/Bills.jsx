@@ -3,7 +3,8 @@ import axios from 'axios';
 import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Edit2, Check, X } from 'lucide-react';
 import LendingLedgerModal from './LendingLedgerModal';
 
-const API_URL = 'http://localhost:5000/api/v1';
+import { API_URL } from '../config';
+
 
 export default function Bills({ selectedCategory, pendingPaymentBill, clearPendingPayment }) {
   const [bills, setBills] = useState([]);

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Bell, CheckCircle2, TrendingUp, ShieldCheck, Landmark, Building2, Receipt } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api/v1';
+import { API_URL } from '../config';
+
 
 export default function DueAlerts() {
   const [expenses, setExpenses] = useState([]);

@@ -8,8 +8,8 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const DueAlerts = lazy(() => import('./components/DueAlerts'));
 import './index.css';
 
-// We'll mock the API calls here for the demo if the backend isn't fully seeded
-const API_URL = 'http://localhost:5000/api/v1';
+import { API_URL } from './config';
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('isAuthenticated') === 'true');

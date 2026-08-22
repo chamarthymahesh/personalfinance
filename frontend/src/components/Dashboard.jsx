@@ -3,7 +3,8 @@ import axios from 'axios';
 import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-const API_URL = 'http://localhost:5000/api/v1';
+import { API_URL } from '../config';
+
 
 // Premium color palette for the donut chart
 const COLORS = ['#854d0e', '#15803d', '#b91c1c', '#1d4ed8', '#7e22ce', '#0369a1', '#be123c'];
