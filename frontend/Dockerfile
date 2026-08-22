@@ -9,8 +9,8 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_API_URL
-ARG VITE_SERVER_URL
+ARG VITE_API_URL=https://api.personal.apnakartz.com/api/v1
+ARG VITE_SERVER_URL=https://api.personal.apnakartz.com
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_SERVER_URL=$VITE_SERVER_URL
 
