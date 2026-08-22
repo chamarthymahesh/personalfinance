@@ -323,6 +323,21 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
     }
   };
 
+  const uploadProofForBill = async (id, file) => {
+    if (!file) return;
+    try {
+      const fd = new FormData();
+      fd.append('paymentProof', file);
+      await axios.put(`${API_URL}/expenses/${id}/attach-proof`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      fetchBills();
+    } catch (err) {
+      console.error('Upload proof error:', err);
+      alert('Failed to attach proof: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   const getCategoryIcon = (category) => {
     switch(category) {
       case 'House Rent': return <Home size={24} color="var(--accent-primary)" />;
@@ -683,7 +698,36 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   </>
                 )
               ) : (
-                <div style={{color: 'rgba(255,255,255,0.2)', fontSize: '0.875rem', fontWeight: '500'}}>Settled</div>
+                /* Paid bill actions */
+                <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                  {!bill.paymentProof ? (
+                    <label style={{
+                      background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.3)',
+                      color: 'var(--accent-primary)', padding: '0.45rem 0.75rem', borderRadius: '6px',
+                      cursor: 'pointer', fontSize: '0.78rem', fontWeight: '600', whiteSpace: 'nowrap'
+                    }} title="Attach payment proof">
+                      📎 Attach Proof
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        style={{display: 'none'}}
+                        onChange={(e) => uploadProofForBill(bill._id, e.target.files[0])}
+                      />
+                    </label>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => deleteBill(bill._id)}
+                    style={{
+                      background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)',
+                      color: '#dc2626', padding: '0.45rem', borderRadius: '6px',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                    title="Delete this entry"
+                  >
+                    🗑
+                  </button>
+                </div>
               )}
             </div>
 

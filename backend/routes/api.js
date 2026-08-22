@@ -127,6 +127,22 @@ router.put('/:type/:id', async (req, res) => {
   }
 });
 
+// Attach proof to an existing paid expense
+router.put('/expenses/:id/attach-proof', upload.single('paymentProof'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const expense = await Expense.findByIdAndUpdate(
+      req.params.id,
+      { paymentProof: req.file.path },
+      { new: true }
+    );
+    if (!expense) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true, paymentProof: req.file.path });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Pay expense and auto-generate next
 router.put('/expenses/:id/pay', upload.single('paymentProof'), async (req, res) => {
   try {
