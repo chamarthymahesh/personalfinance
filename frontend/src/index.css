@@ -49,6 +49,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .sidebar {
   width: var(--sidebar-width, 260px);
+  height: 100vh;
+  position: sticky;
+  top: 0;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border-sidebar);
   padding: 0;
