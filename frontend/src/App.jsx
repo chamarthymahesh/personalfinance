@@ -249,7 +249,7 @@ const groupedCategories = useMemo(() => {
             if (!cats || cats.length === 0) return null;
             return (
               <div key={mod} className="sidebar-section">
-                <div className="sidebar-section-title">{moduleNames[mod] || mod}</div>
+                {!isSidebarCollapsed && <div className="sidebar-section-title">{moduleNames[mod] || mod}</div>}
                 <ul className="nav-links">
                   {cats.map(cat => (
                     <li key={cat._id} className={`nav-link ${activeTab === cat._id ? 'active' : ''}`} onClick={() => setActiveTab(cat._id)} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
