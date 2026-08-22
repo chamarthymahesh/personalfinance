@@ -808,9 +808,10 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                     style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'white', fontSize: '0.95rem', color: '#1e293b' }}
                   >
                     <option>Monthly</option>
+                    <option>Quarterly</option>
+                    <option>Half-Yearly</option>
                     <option>Yearly</option>
                     <option>One-time</option>
-                    <option>Quarterly</option>
                   </select>
                 </div>
               </div>
