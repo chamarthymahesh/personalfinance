@@ -3,6 +3,9 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const LendingLedger = require('../models/LendingLedger');
+const auth = require('../middleware/auth');
+
+router.use(auth);
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({

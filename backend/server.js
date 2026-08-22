@@ -27,6 +27,16 @@ const connectDB = async () => {
         { name: 'Other', fields: [] }
       ]);
       console.log('Seeded initial categories');
+    // Seed initial admin user
+    const User = require('./models/User');
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      await User.create({
+        name: 'Mahesh Chamarthy',
+        email: 'mahesh@gmail.com',
+        password: 'Nehaal@2026'
+      });
+      console.log('Seeded default admin user');
     }
   } catch (error) {
     console.error(`Error: ${error.message}`);
@@ -53,10 +63,12 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 // Route files
+const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
 const lendingRoutes = require('./routes/lending');
 
 // Mount routers
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/lending-ledger', lendingRoutes);
 app.use('/api/v1', apiRoutes);
 

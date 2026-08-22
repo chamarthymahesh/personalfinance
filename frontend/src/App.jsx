@@ -153,15 +153,16 @@ const groupedCategories = useMemo(() => {
     }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Simple hardcoded auth for demo
-    if (loginForm.email.trim().toLowerCase() === 'mahesh@gmail.com' && loginForm.password === 'Nehaal@2026') {
+    try {
+      const res = await axios.post(`${API_URL}/auth/login`, loginForm);
+      localStorage.setItem('token', res.data.token);
       localStorage.setItem('isAuthenticated', 'true');
       setIsAuthenticated(true);
       setLoginError('');
-    } else {
-      setLoginError('Invalid credentials. Please try again.');
+    } catch (err) {
+      setLoginError(err.response?.data?.error || 'Invalid credentials. Please try again.');
     }
   };
 
@@ -306,6 +307,7 @@ const groupedCategories = useMemo(() => {
           </div>
           <button 
             onClick={() => {
+              localStorage.removeItem('token');
               localStorage.removeItem('isAuthenticated');
               setIsAuthenticated(false);
             }}

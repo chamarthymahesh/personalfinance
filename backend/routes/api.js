@@ -8,6 +8,9 @@ const Property = require('../models/Property');
 const Category = require('../models/Category');
 const multer = require('multer');
 const path = require('path');
+const auth = require('../middleware/auth');
+
+router.use(auth);
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
