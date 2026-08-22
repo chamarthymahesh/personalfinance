@@ -122,6 +122,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-link {
+  position: relative;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   color: var(--text-sidebar);
@@ -144,6 +145,41 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  position: relative;
+}
+
+.nav-tooltip {
+  display: none;
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-sidebar);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.nav-tooltip::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #0f172a transparent transparent;
+}
+
+.nav-link:hover .nav-tooltip {
+  display: block;
 }
 
 .sidebar-badge {
