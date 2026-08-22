@@ -27,6 +27,8 @@ const connectDB = async () => {
         { name: 'Other', fields: [] }
       ]);
       console.log('Seeded initial categories');
+    }
+
     // Seed initial admin user
     const User = require('./models/User');
     const userCount = await User.countDocuments();
