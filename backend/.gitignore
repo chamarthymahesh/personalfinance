@@ -21,5 +21,4 @@
 Thumbs.db
 
 # lock files from other package managers — pnpm-lock.yaml IS committed.
-package-lock.json
 yarn.lock
