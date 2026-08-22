@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Edit2, Check, X } from 'lucide-react';
 import LendingLedgerModal from './LendingLedgerModal';
 
-import { API_URL } from '../config';
+import { API_URL, SERVER_URL } from '../config';
 
 
 export default function Bills({ selectedCategory, pendingPaymentBill, clearPendingPayment }) {
@@ -546,6 +546,28 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                 <>
                   <div style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem'}}>Paid Via {bill.paymentMode}</div>
                   <div style={{fontWeight: '500', color: 'var(--accent-success)'}}>{bill.paidDate ? new Date(bill.paidDate).toLocaleDateString() : 'N/A'}</div>
+                  {bill.paymentProof && (
+                    <a
+                      href={`${SERVER_URL}/${bill.paymentProof.replace(/\\/g, '/')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        marginTop: '0.35rem',
+                        fontSize: '0.75rem',
+                        color: 'var(--accent-primary)',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        border: '1px solid var(--accent-primary)',
+                        borderRadius: '4px',
+                        padding: '0.15rem 0.5rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      📎 View Proof
+                    </a>
+                  )}
                 </>
               )}
             </div>

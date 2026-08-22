@@ -38,6 +38,9 @@ const ExpenseSchema = new mongoose.Schema({
   },
   referenceNumber: {
     type: String
+  },
+  paymentProof: {
+    type: String
   }
 }, { timestamps: true });
 
