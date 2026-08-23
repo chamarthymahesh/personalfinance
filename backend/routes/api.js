@@ -52,11 +52,12 @@ router.get('/expenses/history', async (req, res) => {
 });
 
 // ============================================================
-// Insurance Backfill — auto-generate all past paid months
-// POST /api/expenses/insurance-backfill
+// ============================================================
+// Payment History Backfill — auto-generate all past paid months
+// POST /api/expenses/history-backfill
 // Body: { title, category, amount, frequency, startDate, details }
 // ============================================================
-router.post('/expenses/insurance-backfill', async (req, res) => {
+router.post('/expenses/history-backfill', async (req, res) => {
   try {
     const { title, category, amount, frequency, startDate, details } = req.body;
     if (!title || !category || !amount || !startDate) {

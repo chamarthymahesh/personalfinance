@@ -375,7 +375,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
     if (!historyModalBill || !backfillForm.startDate) return;
     setBackfillLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/expenses/insurance-backfill`, {
+      const res = await axios.post(`${API_URL}/expenses/history-backfill`, {
         title: historyModalBill.title,
         category: historyModalBill.category,
         amount: historyModalBill.amount,
@@ -492,9 +492,11 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const displayBills = showClosed ? filteredBills : filteredBills.filter(b => b.status === 'Unpaid');
 
   const isInsuranceCategory = selectedCategory?.module === 'insurances';
+  const isLoanCategory = selectedCategory?.module === 'loans';
+  const hasPaymentHistory = isInsuranceCategory || isLoanCategory;
   const activeRecords = filteredBills.filter(b => b.status === 'Unpaid').length;
   const normalizedMonthlyTotal = filteredBills.filter(b => b.status === 'Unpaid').reduce((sum, b) => sum + b.amount, 0);
-  const totalPaidAllTime = isInsuranceCategory
+  const totalPaidAllTime = hasPaymentHistory
     ? filteredBills.filter(b => b.status === 'Paid').reduce((sum, b) => sum + b.amount, 0)
     : 0;
 
@@ -531,7 +533,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
           <div style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Normalized monthly total</div>
           <div style={{fontSize: '2rem', fontWeight: '600', color: 'var(--accent-secondary)', fontFamily: 'Merriweather, serif'}}>₹{normalizedMonthlyTotal.toLocaleString()}</div>
         </div>
-        {isInsuranceCategory && (
+        {hasPaymentHistory && (
           <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'linear-gradient(135deg, #064e3b, #065f46)', border: '1px solid #059669', borderLeft: '4px solid #4ade80', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
             <div style={{fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem'}}>Total Paid (All Time)</div>
             <div style={{fontSize: '2rem', fontWeight: '700', color: '#4ade80', fontFamily: 'Merriweather, serif'}}>₹{totalPaidAllTime.toLocaleString()}</div>
@@ -739,8 +741,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                       🗑
                     </button>
 
-                    {/* Payment History button for insurance categories */}
-                    {isInsuranceCategory && (
+                    {/* Payment History button for insurance and loan categories */}
+                    {hasPaymentHistory && (
                       <button
                         onClick={() => openHistoryModal(bill)}
                         title="View payment history"
@@ -1170,7 +1172,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       )}
 
       {/* ============================================================ */}
-      {/* INSURANCE PAYMENT HISTORY MODAL */}
+      {/* PAYMENT HISTORY MODAL */}
       {/* ============================================================ */}
       {historyModalBill && (
         <div
@@ -1245,7 +1247,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'
                 }}>
                   <div>
-                    <div style={{fontWeight: '700', fontSize: '0.9rem', color: '#92400e'}}>📅 Fill payment history from policy start date</div>
+                    <div style={{fontWeight: '700', fontSize: '0.9rem', color: '#92400e'}}>📅 Fill payment history from {historyModalBill?.category?.toLowerCase().includes('loan') ? 'loan' : 'policy'} start date</div>
                     <div style={{fontSize: '0.78rem', color: '#b45309', marginTop: '0.25rem'}}>Auto-generates all past paid months. Won't create duplicates.</div>
                   </div>
                   <button
@@ -1268,7 +1270,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   <div style={{fontWeight: '700', fontSize: '0.95rem', color: '#713f12', marginBottom: '1rem'}}>📅 Backfill Payment History</div>
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '0.78rem', color: '#92400e', marginBottom: '0.4rem', fontWeight: '600'}}>Policy Start Date *</label>
+                      <label style={{display: 'block', fontSize: '0.78rem', color: '#92400e', marginBottom: '0.4rem', fontWeight: '600'}}>{historyModalBill?.category?.toLowerCase().includes('loan') ? 'Loan' : 'Policy'} Start Date *</label>
                       <input
                         type="date"
                         value={backfillForm.startDate}
@@ -1403,7 +1405,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                     borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                   }}>
                     <div>
-                      <div style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem'}}>Total Premium Paid (All Time)</div>
+                      <div style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem'}}>Total {historyModalBill?.category?.toLowerCase().includes('loan') ? 'EMI' : 'Premium'} Paid (All Time)</div>
                       <div style={{color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem'}}>{historyData.count} instalments &times; ₹{(historyModalBill.amount || 0).toLocaleString()}</div>
                     </div>
                     <div style={{color: '#4ade80', fontWeight: '800', fontSize: '1.5rem', fontFamily: 'Merriweather, serif'}}>₹{historyData.totalPaid.toLocaleString()}</div>
