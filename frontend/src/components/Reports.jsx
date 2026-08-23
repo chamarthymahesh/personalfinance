@@ -59,7 +59,7 @@ export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState(MONTHS[currentMonthIndex]);
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
 
-  const YEARS = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString());
+  const YEARS = Array.from({ length: 81 }, (_, i) => (2000 + i).toString());
 
   useEffect(() => {
     fetchExpenses();
