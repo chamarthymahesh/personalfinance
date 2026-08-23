@@ -68,10 +68,12 @@ app.use('/uploads', express.static(uploadsDir));
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
 const lendingRoutes = require('./routes/lending');
+const investmentsRoutes = require('./routes/investments');
 
 // Mount routers
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/lending-ledger', lendingRoutes);
+app.use('/api/v1/investment-ledger', investmentsRoutes);
 app.use('/api/v1', apiRoutes);
 
 const PORT = process.env.PORT || 5000;

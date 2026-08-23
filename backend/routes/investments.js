@@ -1,0 +1,120 @@
+const express = require('express');
+const router = express.Router();
+const InvestmentLedger = require('../models/InvestmentLedger');
+const Expense = require('../models/Expense');
+const auth = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
+router.use(auth);
+
+// @route   GET /api/v1/investment-ledger/:expenseId
+// @desc    Get ledger for a specific investment expense
+router.get('/:expenseId', async (req, res) => {
+  try {
+    const ledger = await InvestmentLedger.findOne({ expenseId: req.params.expenseId });
+    if (!ledger) {
+      return res.status(404).json({ success: false, error: 'Ledger not found' });
+    }
+    res.status(200).json({ success: true, data: ledger });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// @route   POST /api/v1/investment-ledger/init
+// @desc    Initialize a ledger if it doesn't exist
+router.post('/init', async (req, res) => {
+  try {
+    const { expenseId, fundName, initialAmount } = req.body;
+    
+    const existing = await InvestmentLedger.findOne({ expenseId });
+    if (existing) {
+      return res.status(200).json({ success: true, data: existing });
+    }
+
+    const ledger = new InvestmentLedger({
+      expenseId,
+      fundName,
+      totalInvested: initialAmount || 0,
+      entries: initialAmount > 0 ? [{
+        type: 'opening',
+        amount: initialAmount,
+        totalInvestedAfter: initialAmount,
+        note: 'Initial invested amount'
+      }] : []
+    });
+
+    await ledger.save();
+    res.status(201).json({ success: true, data: ledger });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// @route   POST /api/v1/investment-ledger/:id/entry
+// @desc    Add a new entry (invest or withdraw)
+router.post('/:id/entry', upload.single('proofFile'), async (req, res) => {
+  try {
+    const ledger = await InvestmentLedger.findById(req.params.id);
+    if (!ledger) {
+      return res.status(404).json({ success: false, error: 'Ledger not found' });
+    }
+
+    const { type, amount, date, note, paymentMode } = req.body;
+    const numAmount = Number(amount);
+
+    let totalInvestedAfter = ledger.totalInvested;
+    if (type === 'invest') {
+      totalInvestedAfter += numAmount;
+    } else if (type === 'withdraw') {
+      totalInvestedAfter -= numAmount;
+    }
+
+    const newEntry = {
+      type,
+      amount: numAmount,
+      date: date ? new Date(date) : new Date(),
+      note,
+      paymentMode,
+      totalInvestedAfter
+    };
+
+    ledger.entries.push(newEntry);
+    ledger.totalInvested = totalInvestedAfter;
+
+    // Sort entries by date
+    ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Recalculate balances
+    let runningTotal = 0;
+    for (let i = 0; i < ledger.entries.length; i++) {
+      const entry = ledger.entries[i];
+      if (entry.type === 'invest' || entry.type === 'opening') {
+        runningTotal += entry.amount;
+      } else if (entry.type === 'withdraw') {
+        runningTotal -= entry.amount;
+      }
+      entry.totalInvestedAfter = runningTotal;
+    }
+    ledger.totalInvested = runningTotal;
+
+    await ledger.save();
+    res.status(200).json({ success: true, data: ledger });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+module.exports = router;

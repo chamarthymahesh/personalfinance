@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Edit2, Check, X, History, IndianRupee } from 'lucide-react';
 import LendingLedgerModal from './LendingLedgerModal';
-
+import InvestmentLedgerModal from './InvestmentLedgerModal';
 import { API_URL, SERVER_URL } from '../config';
 
 
@@ -13,6 +13,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const [isNewBiller, setIsNewBiller] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
   const [lendingLedgerBill, setLendingLedgerBill] = useState(null);
+  const [investmentLedgerBill, setInvestmentLedgerBill] = useState(null);
 
   // --- Payment History Modal State ---
   const [historyModalBill, setHistoryModalBill] = useState(null);
@@ -705,6 +706,14 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                       }}>
                         📒 View Ledger
                       </button>
+                    ) : bill.category?.toLowerCase().includes('mutual funds') ? (
+                      <button onClick={() => setInvestmentLedgerBill(bill)} style={{
+                        background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.4)',
+                        color: 'var(--accent-primary)', padding: '0.5rem 1rem', borderRadius: '6px',
+                        fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem'
+                      }}>
+                        📈 View Ledger
+                      </button>
                     ) : (
                       <button onClick={() => openPaymentModal(bill)} style={{
                         background: 'transparent', border: '1px solid var(--accent-success)',
@@ -1098,9 +1107,17 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
       {/* LENDING LEDGER MODAL */}
       {lendingLedgerBill && (
-        <LendingLedgerModal
-          bill={lendingLedgerBill}
-          onClose={() => setLendingLedgerBill(null)}
+        <LendingLedgerModal 
+          bill={lendingLedgerBill} 
+          onClose={() => setLendingLedgerBill(null)} 
+        />
+      )}
+
+      {/* INVESTMENT LEDGER MODAL */}
+      {investmentLedgerBill && (
+        <InvestmentLedgerModal 
+          bill={investmentLedgerBill} 
+          onClose={() => setInvestmentLedgerBill(null)} 
         />
       )}
 
