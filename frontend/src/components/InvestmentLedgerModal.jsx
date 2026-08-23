@@ -31,7 +31,8 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
           const initRes = await axios.post(`${SERVER_URL}/api/v1/investment-ledger/init`, {
             expenseId: bill._id,
             fundName: bill.details?.fundName || bill.title,
-            initialAmount: bill.amount // assuming the bill amount is the initial lumpsum/sip
+            initialAmount: bill.amount,
+            startDate: bill.details?.startDate
           }, {
             headers: { Authorization: `Bearer ${token}` }
           });

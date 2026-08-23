@@ -37,7 +37,7 @@ router.get('/:expenseId', async (req, res) => {
 // @desc    Initialize a ledger if it doesn't exist
 router.post('/init', async (req, res) => {
   try {
-    const { expenseId, fundName, initialAmount } = req.body;
+    const { expenseId, fundName, initialAmount, startDate } = req.body;
     
     const existing = await InvestmentLedger.findOne({ expenseId });
     if (existing) {
@@ -51,6 +51,7 @@ router.post('/init', async (req, res) => {
       entries: initialAmount > 0 ? [{
         type: 'opening',
         amount: initialAmount,
+        date: startDate ? new Date(startDate) : new Date(),
         totalInvestedAfter: initialAmount,
         note: 'Initial invested amount'
       }] : []

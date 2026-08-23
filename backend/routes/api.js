@@ -220,6 +220,23 @@ router.put('/:type/:id', upload.any(), async (req, res) => {
 
     const data = await Model.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!data) return res.status(404).json({ error: 'Document not found' });
+    
+    // Auto-sync InvestmentLedger if Mutual Fund Start Date is updated
+    if (modelType === 'expenses' && data.category && data.category.toLowerCase().includes('mutual funds')) {
+      if (data.details && data.details.startDate) {
+        const InvestmentLedger = require('../models/InvestmentLedger');
+        const ledger = await InvestmentLedger.findOne({ expenseId: data._id });
+        if (ledger) {
+          const openingEntry = ledger.entries.find(e => e.type === 'opening');
+          if (openingEntry && new Date(openingEntry.date).getTime() !== new Date(data.details.startDate).getTime()) {
+            openingEntry.date = new Date(data.details.startDate);
+            ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            await ledger.save();
+          }
+        }
+      }
+    }
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
