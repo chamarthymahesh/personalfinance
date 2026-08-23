@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Plus, TrendingDown, TrendingUp, Trash2 } from 'lucide-react';
+import { X, Plus, TrendingDown, TrendingUp, Trash2, Zap } from 'lucide-react';
 import { SERVER_URL } from '../config';
 
 export default function InvestmentLedgerModal({ bill, onClose }) {
@@ -95,6 +95,40 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
     }
   };
 
+  const handleAutoGenerate = async () => {
+    const startDate = bill.details?.startDate;
+    const sipAmount = bill.amount;
+    const frequency = bill.frequency || 'Monthly';
+
+    if (!startDate) {
+      alert('Please set a Start Date on this fund entry first (click Edit).');
+      return;
+    }
+    if (!sipAmount || sipAmount <= 0) {
+      alert('Invalid SIP amount.');
+      return;
+    }
+
+    const confirm = window.confirm(
+      `This will auto-generate one ${frequency.toLowerCase()} SIP entry of ₹${sipAmount.toLocaleString()} for every month from ${new Date(startDate).toLocaleDateString()} up to today.\n\nProceed?`
+    );
+    if (!confirm) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${SERVER_URL}/api/v1/investment-ledger/${ledger._id}/auto-generate`,
+        { startDate, sipAmount, frequency },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert(`✅ ${res.data.generated} entries generated successfully!`);
+      fetchLedger();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to auto-generate entries.');
+    }
+  };
+
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -153,15 +187,23 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
               </div>
 
               {/* Transactions List */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>Transaction History</h3>
-                <button 
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  className="btn"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'var(--accent-secondary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
-                >
-                  <Plus size={16} /> Add Transaction
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={handleAutoGenerate}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.85rem' }}
+                    title="Auto-generate monthly SIP entries from start date to today"
+                  >
+                    <Zap size={15} /> Auto-Generate History
+                  </button>
+                  <button 
+                    onClick={() => setShowAddForm(!showAddForm)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.85rem' }}
+                  >
+                    <Plus size={16} /> Add Transaction
+                  </button>
+                </div>
               </div>
 
               {showAddForm && (

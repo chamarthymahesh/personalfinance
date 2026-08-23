@@ -149,4 +149,81 @@ router.delete('/:id/entry/:entryId', async (req, res) => {
   }
 });
 
+// @route   POST /api/v1/investment-ledger/:id/auto-generate
+// @desc    Auto-generate monthly investment entries from startDate up to today
+router.post('/:id/auto-generate', async (req, res) => {
+  try {
+    const ledger = await InvestmentLedger.findById(req.params.id);
+    if (!ledger) {
+      return res.status(404).json({ success: false, error: 'Ledger not found' });
+    }
+
+    const { startDate, sipAmount, frequency } = req.body;
+    if (!startDate || !sipAmount) {
+      return res.status(400).json({ success: false, error: 'startDate and sipAmount are required' });
+    }
+
+    const amount = Number(sipAmount);
+    const start = new Date(startDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // end of today
+
+    // Generate dates from startDate up to today
+    const newEntries = [];
+    let cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+
+    while (cursor <= today) {
+      // Skip if an entry already exists on this date (same day)
+      const dateStr = cursor.toISOString().split('T')[0];
+      const alreadyExists = ledger.entries.some(e => {
+        const eDate = new Date(e.date).toISOString().split('T')[0];
+        return eDate === dateStr;
+      });
+
+      if (!alreadyExists) {
+        newEntries.push({
+          type: 'invest',
+          amount,
+          date: new Date(cursor),
+          note: `SIP - ${cursor.toLocaleString('default', { month: 'long', year: 'numeric' })}`
+        });
+      }
+
+      // Advance by frequency
+      if (frequency === 'Weekly') {
+        cursor.setDate(cursor.getDate() + 7);
+      } else if (frequency === 'Quarterly') {
+        cursor.setMonth(cursor.getMonth() + 3);
+      } else {
+        // Monthly (default)
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
+
+    // Add new entries to ledger
+    ledger.entries.push(...newEntries);
+
+    // Sort all entries by date
+    ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Recalculate running balance
+    let runningTotal = 0;
+    for (let i = 0; i < ledger.entries.length; i++) {
+      const entry = ledger.entries[i];
+      if (entry.type === 'invest' || entry.type === 'opening') {
+        runningTotal += entry.amount;
+      } else if (entry.type === 'withdraw') {
+        runningTotal -= entry.amount;
+      }
+      entry.totalInvestedAfter = runningTotal;
+    }
+    ledger.totalInvested = runningTotal;
+
+    await ledger.save();
+    res.status(200).json({ success: true, data: ledger, generated: newEntries.length });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
