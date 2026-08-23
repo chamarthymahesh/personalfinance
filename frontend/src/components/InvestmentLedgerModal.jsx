@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import { X, Plus, TrendingDown, TrendingUp, Trash2 } from 'lucide-react';
 import { SERVER_URL } from '../config';
 
 export default function InvestmentLedgerModal({ bill, onClose }) {
@@ -31,7 +31,7 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
           const initRes = await axios.post(`${SERVER_URL}/api/v1/investment-ledger/init`, {
             expenseId: bill._id,
             fundName: bill.details?.fundName || bill.title,
-            initialAmount: bill.amount,
+            initialAmount: 0,
             startDate: bill.details?.startDate
           }, {
             headers: { Authorization: `Bearer ${token}` }
@@ -78,6 +78,20 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
     } catch (err) {
       console.error(err);
       alert('Failed to add transaction.');
+    }
+  };
+
+  const handleDelete = async (entryId) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${SERVER_URL}/api/v1/investment-ledger/${ledger._id}/entry/${entryId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchLedger();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete transaction.');
     }
   };
 
@@ -247,6 +261,7 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Amount</th>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Balance</th>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Note</th>
+                        <th style={{ padding: '0.75rem', width: '40px' }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -274,6 +289,14 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
                           </td>
                           <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
                             {entry.note || '-'}
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <button onClick={() => handleDelete(entry._id)} style={{
+                              background: 'none', border: 'none', color: 'var(--accent-danger)',
+                              cursor: 'pointer', padding: '0.25rem', opacity: 0.7
+                            }} title="Delete transaction">
+                              <Trash2 size={16} />
+                            </button>
                           </td>
                         </tr>
                       ))}

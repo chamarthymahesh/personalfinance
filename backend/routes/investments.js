@@ -118,4 +118,35 @@ router.post('/:id/entry', upload.single('proofFile'), async (req, res) => {
   }
 });
 
+// @route   DELETE /api/v1/investment-ledger/:id/entry/:entryId
+// @desc    Delete a specific entry
+router.delete('/:id/entry/:entryId', async (req, res) => {
+  try {
+    const ledger = await InvestmentLedger.findById(req.params.id);
+    if (!ledger) {
+      return res.status(404).json({ success: false, error: 'Ledger not found' });
+    }
+
+    ledger.entries = ledger.entries.filter(e => e._id.toString() !== req.params.entryId);
+
+    // Recalculate balances
+    let runningTotal = 0;
+    for (let i = 0; i < ledger.entries.length; i++) {
+      const entry = ledger.entries[i];
+      if (entry.type === 'invest' || entry.type === 'opening') {
+        runningTotal += entry.amount;
+      } else if (entry.type === 'withdraw') {
+        runningTotal -= entry.amount;
+      }
+      entry.totalInvestedAfter = runningTotal;
+    }
+    ledger.totalInvested = runningTotal;
+
+    await ledger.save();
+    res.status(200).json({ success: true, data: ledger });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
