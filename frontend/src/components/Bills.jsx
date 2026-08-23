@@ -718,7 +718,6 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                       </button>
                     )}
                   </>
-                )
               ) : (
                 /* Paid bill actions */
                 <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
