@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Edit2, Check, X } from 'lucide-react';
+import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Edit2, Check, X, History, IndianRupee } from 'lucide-react';
 import LendingLedgerModal from './LendingLedgerModal';
 
 import { API_URL, SERVER_URL } from '../config';
@@ -13,6 +13,15 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const [isNewBiller, setIsNewBiller] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
   const [lendingLedgerBill, setLendingLedgerBill] = useState(null);
+
+  // --- Payment History Modal State ---
+  const [historyModalBill, setHistoryModalBill] = useState(null);
+  const [historyData, setHistoryData] = useState({ records: [], totalPaid: 0, count: 0 });
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [backfillForm, setBackfillForm] = useState({ startDate: '', paymentMode: 'Cash' });
+  const [backfillLoading, setBackfillLoading] = useState(false);
+  const [backfillResult, setBackfillResult] = useState(null);
+  const [showBackfillForm, setShowBackfillForm] = useState(false);
 
   useEffect(() => {
     const handleOpen = () => setIsDrawerOpen(true);
@@ -338,6 +347,54 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
     }
   };
 
+  // --- Payment History functions ---
+  const fetchPaymentHistory = async (bill) => {
+    setHistoryLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/expenses/history`, {
+        params: { title: bill.title, category: bill.category }
+      });
+      setHistoryData(res.data);
+    } catch (err) {
+      console.error('Failed to fetch history', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openHistoryModal = (bill) => {
+    setHistoryModalBill(bill);
+    setBackfillResult(null);
+    setShowBackfillForm(false);
+    setBackfillForm({ startDate: '', paymentMode: 'Cash' });
+    setHistoryData({ records: [], totalPaid: 0, count: 0 });
+    fetchPaymentHistory(bill);
+  };
+
+  const submitBackfill = async () => {
+    if (!historyModalBill || !backfillForm.startDate) return;
+    setBackfillLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/expenses/insurance-backfill`, {
+        title: historyModalBill.title,
+        category: historyModalBill.category,
+        amount: historyModalBill.amount,
+        frequency: historyModalBill.frequency || 'Monthly',
+        startDate: backfillForm.startDate,
+        details: historyModalBill.details || {}
+      });
+      setBackfillResult(res.data);
+      setShowBackfillForm(false);
+      fetchPaymentHistory(historyModalBill);
+      fetchBills();
+    } catch (err) {
+      console.error('Backfill failed', err);
+      alert('Backfill failed: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setBackfillLoading(false);
+    }
+  };
+
   const getCategoryIcon = (category) => {
     switch(category) {
       case 'House Rent': return <Home size={24} color="var(--accent-primary)" />;
@@ -434,8 +491,12 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const filteredBills = selectedCategory ? bills.filter(b => b.category === selectedCategory.name) : bills;
   const displayBills = showClosed ? filteredBills : filteredBills.filter(b => b.status === 'Unpaid');
 
+  const isInsuranceCategory = selectedCategory?.module === 'insurances';
   const activeRecords = filteredBills.filter(b => b.status === 'Unpaid').length;
   const normalizedMonthlyTotal = filteredBills.filter(b => b.status === 'Unpaid').reduce((sum, b) => sum + b.amount, 0);
+  const totalPaidAllTime = isInsuranceCategory
+    ? filteredBills.filter(b => b.status === 'Paid').reduce((sum, b) => sum + b.amount, 0)
+    : 0;
 
   return (
     <div style={{maxWidth: '1200px', margin: '0 auto', color: 'var(--text-main)'}}>
@@ -470,6 +531,13 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
           <div style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Normalized monthly total</div>
           <div style={{fontSize: '2rem', fontWeight: '600', color: 'var(--accent-secondary)', fontFamily: 'Merriweather, serif'}}>₹{normalizedMonthlyTotal.toLocaleString()}</div>
         </div>
+        {isInsuranceCategory && (
+          <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'linear-gradient(135deg, #064e3b, #065f46)', border: '1px solid #059669', borderLeft: '4px solid #4ade80', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
+            <div style={{fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem'}}>Total Paid (All Time)</div>
+            <div style={{fontSize: '2rem', fontWeight: '700', color: '#4ade80', fontFamily: 'Merriweather, serif'}}>₹{totalPaidAllTime.toLocaleString()}</div>
+            <div style={{fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.4rem'}}>{filteredBills.filter(b => b.status === 'Paid').length} instalment(s) recorded</div>
+          </div>
+        )}
         <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', padding: '1rem'}}>
           <input 
             type="checkbox" 
@@ -670,6 +738,24 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                     >
                       🗑
                     </button>
+
+                    {/* Payment History button for insurance categories */}
+                    {isInsuranceCategory && (
+                      <button
+                        onClick={() => openHistoryModal(bill)}
+                        title="View payment history"
+                        style={{
+                          background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)',
+                          color: '#6366f1', padding: '0.45rem 0.75rem', borderRadius: '6px',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
+                          fontWeight: '600', fontSize: '0.82rem', whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#6366f1'; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.color = '#6366f1'; }}
+                      >
+                        <History size={14} /> History
+                      </button>
+                    )}
 
                     {/* Show 'View Ledger' for lending/borrowing categories */}
                     {(bill.category?.toLowerCase().includes('lending') || 
@@ -1081,6 +1167,252 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
           bill={lendingLedgerBill}
           onClose={() => setLendingLedgerBill(null)}
         />
+      )}
+
+      {/* ============================================================ */}
+      {/* INSURANCE PAYMENT HISTORY MODAL */}
+      {/* ============================================================ */}
+      {historyModalBill && (
+        <div
+          onClick={() => setHistoryModalBill(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 3000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)', borderRadius: '16px', width: '700px',
+              maxWidth: '95vw', maxHeight: '88vh', overflowY: 'auto',
+              boxShadow: '0 30px 80px rgba(0,0,0,0.4)', color: 'var(--text-main)',
+              display: 'flex', flexDirection: 'column'
+            }}
+          >
+            {/* ---- Header ---- */}
+            <div style={{
+              padding: '1.75rem 2rem 1.25rem',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+              borderRadius: '16px 16px 0 0',
+              flexShrink: 0
+            }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.5rem'}}>Payment History</div>
+                  <h2 style={{fontSize: '1.3rem', fontWeight: '700', color: 'white', margin: 0, fontFamily: 'Merriweather, serif'}}>{historyModalBill.title}</h2>
+                  <div style={{fontSize: '0.82rem', color: 'rgba(255,255,255,0.55)', marginTop: '0.4rem'}}>
+                    {historyModalBill.category} &bull; {historyModalBill.frequency} &bull; ₹{historyModalBill.amount?.toLocaleString()}/instalment
+                  </div>
+                </div>
+                <button
+                  onClick={() => setHistoryModalBill(null)}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px', width: '34px', height: '34px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', color: 'white', fontSize: '1.2rem', lineHeight: 1, flexShrink: 0
+                  }}
+                >×</button>
+              </div>
+
+              {/* ---- Stats banner ---- */}
+              <div style={{marginTop: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem'}}>
+                <div style={{background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.85rem 1rem', border: '1px solid rgba(255,255,255,0.08)'}}>
+                  <div style={{fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Total Paid</div>
+                  <div style={{fontSize: '1.4rem', fontWeight: '800', color: '#4ade80'}}>₹{historyData.totalPaid.toLocaleString()}</div>
+                </div>
+                <div style={{background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.85rem 1rem', border: '1px solid rgba(255,255,255,0.08)'}}>
+                  <div style={{fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Instalments Paid</div>
+                  <div style={{fontSize: '1.4rem', fontWeight: '800', color: '#60a5fa'}}>{historyData.count}</div>
+                </div>
+                <div style={{background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.85rem 1rem', border: '1px solid rgba(255,255,255,0.08)'}}>
+                  <div style={{fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Per Instalment</div>
+                  <div style={{fontSize: '1.4rem', fontWeight: '800', color: '#f9a8d4'}}>₹{(historyModalBill.amount || 0).toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ---- Body ---- */}
+            <div style={{padding: '1.5rem 2rem', flex: 1}}>
+
+              {/* Backfill prompt */}
+              {!showBackfillForm && !backfillResult && (
+                <div style={{
+                  marginBottom: '1.5rem', padding: '1rem 1.25rem',
+                  background: '#fffbeb', border: '1px dashed #f59e0b', borderRadius: '10px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'
+                }}>
+                  <div>
+                    <div style={{fontWeight: '700', fontSize: '0.9rem', color: '#92400e'}}>📅 Fill payment history from policy start date</div>
+                    <div style={{fontSize: '0.78rem', color: '#b45309', marginTop: '0.25rem'}}>Auto-generates all past paid months. Won't create duplicates.</div>
+                  </div>
+                  <button
+                    onClick={() => setShowBackfillForm(true)}
+                    style={{
+                      background: '#f59e0b', border: 'none', color: 'white',
+                      padding: '0.6rem 1.2rem', borderRadius: '8px',
+                      fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0
+                    }}
+                  >+ Backfill History</button>
+                </div>
+              )}
+
+              {/* Backfill form */}
+              {showBackfillForm && (
+                <div style={{
+                  marginBottom: '1.5rem', padding: '1.25rem',
+                  background: '#fefce8', border: '1px solid #fde047', borderRadius: '10px'
+                }}>
+                  <div style={{fontWeight: '700', fontSize: '0.95rem', color: '#713f12', marginBottom: '1rem'}}>📅 Backfill Payment History</div>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem'}}>
+                    <div>
+                      <label style={{display: 'block', fontSize: '0.78rem', color: '#92400e', marginBottom: '0.4rem', fontWeight: '600'}}>Policy Start Date *</label>
+                      <input
+                        type="date"
+                        value={backfillForm.startDate}
+                        onChange={e => setBackfillForm({...backfillForm, startDate: e.target.value})}
+                        style={{width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #fde047', borderRadius: '7px', background: 'white', fontSize: '0.9rem', color: '#1e293b', boxSizing: 'border-box'}}
+                      />
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '0.78rem', color: '#92400e', marginBottom: '0.4rem', fontWeight: '600'}}>Default Payment Mode</label>
+                      <select
+                        value={backfillForm.paymentMode}
+                        onChange={e => setBackfillForm({...backfillForm, paymentMode: e.target.value})}
+                        style={{width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #fde047', borderRadius: '7px', background: 'white', fontSize: '0.9rem', color: '#1e293b'}}
+                      >
+                        <option>Cash</option>
+                        <option>UPI / PhonePe</option>
+                        <option>Internet Banking</option>
+                        <option>Salary Deduction</option>
+                        <option>Post Office</option>
+                      </select>
+                    </div>
+                  </div>
+                  {backfillForm.startDate && (
+                    <div style={{fontSize: '0.8rem', color: '#92400e', marginBottom: '1rem', padding: '0.6rem 0.85rem', background: 'rgba(245,158,11,0.12)', borderRadius: '7px'}}>
+                      ⚠️ Will create approximately <strong>{Math.max(0, Math.ceil((new Date() - new Date(backfillForm.startDate)) / (30.44 * 24 * 3600 * 1000)))}</strong> monthly entries &times; <strong>₹{(historyModalBill.amount || 0).toLocaleString()}</strong> each. Existing months are skipped automatically.
+                    </div>
+                  )}
+                  <div style={{display: 'flex', gap: '0.75rem'}}>
+                    <button
+                      onClick={submitBackfill}
+                      disabled={!backfillForm.startDate || backfillLoading}
+                      style={{
+                        background: backfillLoading || !backfillForm.startDate ? '#d1d5db' : '#15803d',
+                        border: 'none', color: 'white', padding: '0.65rem 1.5rem', borderRadius: '8px',
+                        fontWeight: '700', cursor: backfillLoading || !backfillForm.startDate ? 'not-allowed' : 'pointer', fontSize: '0.9rem'
+                      }}
+                    >{backfillLoading ? '⏳ Creating entries...' : '✅ Confirm Backfill'}</button>
+                    <button
+                      onClick={() => setShowBackfillForm(false)}
+                      style={{background: 'white', border: '1px solid #d1d5db', color: '#374151', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: '500', cursor: 'pointer', fontSize: '0.9rem'}}
+                    >Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Backfill result banner */}
+              {backfillResult && (
+                <div style={{
+                  marginBottom: '1.5rem', padding: '1rem 1.25rem',
+                  background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{fontWeight: '700', color: '#15803d', fontSize: '0.95rem'}}>✅ Backfill Complete!</div>
+                    <div style={{fontSize: '0.82rem', color: '#16a34a', marginTop: '0.25rem'}}>
+                      Created <strong>{backfillResult.created}</strong> new entries &bull; <strong>{backfillResult.skipped}</strong> existing month(s) skipped
+                    </div>
+                  </div>
+                  <button onClick={() => setBackfillResult(null)} style={{background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '1.3rem', lineHeight: 1}}>×</button>
+                </div>
+              )}
+
+              {/* Payment records */}
+              {historyLoading ? (
+                <div style={{textAlign: 'center', padding: '3rem', color: 'var(--text-muted)'}}>
+                  <div style={{fontSize: '2rem', marginBottom: '0.75rem', animation: 'spin 1s linear infinite'}}>⏳</div>
+                  <div>Loading payment history...</div>
+                </div>
+              ) : historyData.records.length === 0 ? (
+                <div style={{
+                  textAlign: 'center', padding: '3rem 2rem',
+                  background: 'var(--bg-main)', border: '1px dashed var(--border-color)',
+                  borderRadius: '12px', color: 'var(--text-muted)'
+                }}>
+                  <div style={{fontSize: '2.5rem', marginBottom: '0.75rem'}}>📭</div>
+                  <div style={{fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-main)'}}>No payment history found</div>
+                  <div style={{fontSize: '0.85rem'}}>Use <strong>"Backfill History"</strong> above to auto-generate all past paid records from your policy start date.</div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em'}}>
+                    {historyData.count} payment{historyData.count !== 1 ? 's' : ''} recorded
+                  </div>
+
+                  {/* Records list */}
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '340px', overflowY: 'auto', paddingRight: '0.25rem'}}>
+                    {[...historyData.records].reverse().map((record, idx) => {
+                      const d = record.paidDate || record.dueDate;
+                      const date = d ? new Date(d) : null;
+                      const isEven = idx % 2 === 0;
+                      return (
+                        <div key={record._id} style={{
+                          display: 'flex', alignItems: 'center',
+                          padding: '0.7rem 1rem',
+                          background: isEven ? 'var(--bg-main)' : 'var(--bg-card)',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          transition: 'background 0.15s'
+                        }}>
+                          {/* Serial number */}
+                          <div style={{
+                            width: '26px', height: '26px', borderRadius: '50%',
+                            background: '#dcfce7', color: '#15803d',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.7rem', fontWeight: '800', flexShrink: 0, marginRight: '0.85rem'
+                          }}>{historyData.count - idx}</div>
+
+                          {/* Month & mode */}
+                          <div style={{flex: 1}}>
+                            <div style={{fontWeight: '600', fontSize: '0.88rem', color: 'var(--text-main)'}}>
+                              {date ? date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'N/A'}
+                            </div>
+                            {record.paymentMode && (
+                              <div style={{fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.1rem'}}>via {record.paymentMode}</div>
+                            )}
+                          </div>
+
+                          {/* Amount + badge */}
+                          <div style={{textAlign: 'right'}}>
+                            <div style={{fontWeight: '700', color: '#15803d', fontSize: '0.92rem'}}>₹{(record.amount || 0).toLocaleString()}</div>
+                            <div style={{display: 'inline-block', fontSize: '0.65rem', background: '#dcfce7', color: '#15803d', padding: '0.1rem 0.45rem', borderRadius: '10px', fontWeight: '700', marginTop: '0.2rem', letterSpacing: '0.05em'}}>✓ PAID</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Grand total footer */}
+                  <div style={{
+                    marginTop: '1rem', padding: '1rem 1.25rem',
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem'}}>Total Premium Paid (All Time)</div>
+                      <div style={{color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem'}}>{historyData.count} instalments &times; ₹{(historyModalBill.amount || 0).toLocaleString()}</div>
+                    </div>
+                    <div style={{color: '#4ade80', fontWeight: '800', fontSize: '1.5rem', fontFamily: 'Merriweather, serif'}}>₹{historyData.totalPaid.toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

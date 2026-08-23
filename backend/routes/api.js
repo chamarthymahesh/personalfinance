@@ -33,6 +33,80 @@ const models = {
   categories: Category
 };
 
+// ============================================================
+// Insurance Payment History — fetch all paid records for a policy
+// GET /api/expenses/history?title=XXXX&category=Postal+insurance
+// ============================================================
+router.get('/expenses/history', async (req, res) => {
+  try {
+    const { title, category } = req.query;
+    if (!title) return res.status(400).json({ error: 'title query param required' });
+    const query = { title, status: 'Paid' };
+    if (category) query.category = category;
+    const records = await Expense.find(query).sort({ paidDate: 1, dueDate: 1 });
+    const totalPaid = records.reduce((sum, r) => sum + (r.amount || 0), 0);
+    res.json({ records, totalPaid, count: records.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// Insurance Backfill — auto-generate all past paid months
+// POST /api/expenses/insurance-backfill
+// Body: { title, category, amount, frequency, startDate, details }
+// ============================================================
+router.post('/expenses/insurance-backfill', async (req, res) => {
+  try {
+    const { title, category, amount, frequency, startDate, details } = req.body;
+    if (!title || !category || !amount || !startDate) {
+      return res.status(400).json({ error: 'title, category, amount, startDate are required' });
+    }
+
+    const freq = frequency || 'Monthly';
+    const monthStep = freq === 'Monthly' ? 1 : freq === 'Quarterly' ? 3 : freq === 'Half-Yearly' ? 6 : 12;
+
+    // Fetch all existing paid records for this policy (to avoid duplicates)
+    const existing = await Expense.find({ title, category, status: 'Paid' });
+    const existingMonths = new Set(
+      existing.map(r => {
+        const d = r.paidDate || r.dueDate;
+        return d ? `${new Date(d).getFullYear()}-${new Date(d).getMonth()}` : null;
+      }).filter(Boolean)
+    );
+
+    const toCreate = [];
+    const cursor = new Date(startDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    while (cursor <= today) {
+      const key = `${cursor.getFullYear()}-${cursor.getMonth()}`;
+      if (!existingMonths.has(key)) {
+        const paidDate = new Date(cursor);
+        toCreate.push({
+          title,
+          category,
+          amount: Number(amount),
+          frequency: freq,
+          dueDate: paidDate,
+          paidDate,
+          status: 'Paid',
+          paymentMode: 'Cash',
+          details: details || {},
+          remarks: 'Backfilled history entry'
+        });
+      }
+      cursor.setMonth(cursor.getMonth() + monthStep);
+    }
+
+    const created = await Expense.insertMany(toCreate);
+    res.status(201).json({ created: created.length, skipped: existingMonths.size });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:type', async (req, res) => {
   try {
     const Model = models[req.params.type];
