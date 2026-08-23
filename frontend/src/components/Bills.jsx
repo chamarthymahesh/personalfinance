@@ -58,8 +58,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   });
 
   // Edit bill state
+  const [isDrawerEditMode, setIsDrawerEditMode] = useState(false);
   const [editingBillId, setEditingBillId] = useState(null);
-  const [editBillData, setEditBillData] = useState({ amount: '', dueDate: '', title: '' });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -192,11 +192,16 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
             autoTitle = String(formData.details[firstKey]);
          }
       }
+      if (formData.title && formData.title !== formData.category) {
+         autoTitle = formData.title;
+      }
       const payload = { ...formData, title: autoTitle };
       
-      // Check if any files are attached in details
       const hasFiles = Object.values(formData.details).some(val => val instanceof File);
       
+      let requestData = payload;
+      let requestConfig = {};
+
       if (hasFiles) {
         const data = new FormData();
         data.append('title', autoTitle);
@@ -206,7 +211,6 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         if (formData.dueDate) data.append('dueDate', formData.dueDate);
         if (formData.remarks) data.append('remarks', formData.remarks);
         
-        // Append files and separate text details
         const textDetails = {};
         Object.keys(formData.details).forEach(key => {
           const val = formData.details[key];
@@ -217,10 +221,14 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
           }
         });
         data.append('details', JSON.stringify(textDetails));
-        
-        await axios.post(`${API_URL}/expenses`, data, { headers: { 'Content-Type': 'multipart/form-data' }});
+        requestData = data;
+        requestConfig = { headers: { 'Content-Type': 'multipart/form-data' }};
+      }
+      
+      if (isDrawerEditMode && editingBillId) {
+        await axios.put(`${API_URL}/expenses/${editingBillId}`, requestData, requestConfig);
       } else {
-        await axios.post(`${API_URL}/expenses`, payload);
+        await axios.post(`${API_URL}/expenses`, requestData, requestConfig);
       }
       
       setFormData({
@@ -228,6 +236,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       });
       setIsNewBiller(true);
       setIsDrawerOpen(false);
+      setIsDrawerEditMode(false);
+      setEditingBillId(null);
       fetchBills();
     } catch (err) {
       console.error(err);
@@ -289,31 +299,17 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   // Edit bill handlers
   const startEditBill = (bill) => {
     setEditingBillId(bill._id);
-    setEditBillData({
-      amount: bill.amount,
+    setIsDrawerEditMode(true);
+    setFormData({
+      title: bill.title || '',
+      category: bill.category || 'House Rent',
+      amount: bill.amount || '',
+      frequency: bill.frequency || 'Monthly',
       dueDate: bill.dueDate ? new Date(bill.dueDate).toISOString().split('T')[0] : '',
-      title: bill.title
+      remarks: bill.remarks || '',
+      details: bill.details || {}
     });
-  };
-
-  const cancelEditBill = () => {
-    setEditingBillId(null);
-    setEditBillData({ amount: '', dueDate: '', title: '' });
-  };
-
-  const saveEditBill = async (id) => {
-    try {
-      await axios.put(`${API_URL}/expenses/${id}`, {
-        amount: Number(editBillData.amount),
-        dueDate: editBillData.dueDate,
-        title: editBillData.title
-      });
-      setEditingBillId(null);
-      fetchBills();
-    } catch (err) {
-      console.error('Edit bill error:', err);
-      alert('Failed to update bill: ' + (err.response?.data?.error || err.message));
-    }
+    setIsDrawerOpen(true);
   };
 
   const deleteBill = async (id) => {
@@ -585,17 +581,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
             {/* 2. Vendor Name & Specifics */}
             <div style={{flex: 1, minWidth: '200px'}}>
-              {editingBillId === bill._id ? (
-                <input
-                  type="text"
-                  className="form-input"
-                  style={{padding: '0.3rem 0.5rem', fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem'}}
-                  value={editBillData.title}
-                  onChange={(e) => setEditBillData({...editBillData, title: e.target.value})}
-                />
-              ) : (
-                <h3 style={{fontSize: '1.15rem', fontWeight: '600', marginBottom: '0.25rem', letterSpacing: '0.5px'}}>{bill.title}</h3>
-              )}
+              <h3 style={{fontSize: '1.15rem', fontWeight: '600', marginBottom: '0.25rem', letterSpacing: '0.5px'}}>{bill.title}</h3>
               <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center'}}>
                 <span style={{fontSize: '0.85rem', color: 'var(--text-muted)'}}>{bill.category} &bull; {bill.frequency}</span>
                 {bill.details && Object.entries(bill.details).map(([k,v]) => (
@@ -615,17 +601,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               {bill.status === 'Unpaid' ? (
                 <>
                   <div style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem'}}>Due Date</div>
-                  {editingBillId === bill._id ? (
-                    <input
-                      type="date"
-                      className="form-input"
-                      style={{padding: '0.3rem 0.5rem', fontSize: '0.9rem', textAlign: 'center'}}
-                      value={editBillData.dueDate}
-                      onChange={(e) => setEditBillData({...editBillData, dueDate: e.target.value})}
-                    />
-                  ) : (
-                    <div style={{fontWeight: '500'}}>{bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : 'N/A'}</div>
-                  )}
+                  <div style={{fontWeight: '500'}}>{bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : 'N/A'}</div>
                 </>
               ) : (
                 <>
@@ -659,23 +635,9 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
             {/* 4. Amount */}
             <div style={{textAlign: 'right', minWidth: '120px'}}>
-              {editingBillId === bill._id ? (
-                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem'}}>
-                  <span style={{fontSize: '1.2rem', fontWeight: '700', color: 'var(--accent-danger)'}}>₹</span>
-                  <input
-                    type="number"
-                    className="form-input"
-                    style={{padding: '0.3rem 0.5rem', fontSize: '1.2rem', fontWeight: '700', width: '100px', textAlign: 'right'}}
-                    value={editBillData.amount}
-                    onChange={(e) => setEditBillData({...editBillData, amount: e.target.value})}
-                    autoFocus
-                  />
-                </div>
-              ) : (
-                <div style={{fontSize: '1.4rem', fontWeight: '700', color: bill.status === 'Paid' ? 'var(--text-main)' : 'var(--accent-danger)'}}>
-                  ₹{bill.amount.toLocaleString()}
-                </div>
-              )}
+              <div style={{fontSize: '1.4rem', fontWeight: '700', color: bill.status === 'Paid' ? 'var(--text-main)' : 'var(--accent-danger)'}}>
+                ₹{bill.amount.toLocaleString()}
+              </div>
               <span className={`badge ${bill.status === 'Paid' ? 'badge-success' : 'badge-danger'}`} style={{marginTop: '0.5rem', display: 'inline-block'}}>
                 {bill.status}
               </span>
@@ -684,48 +646,20 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
             {/* 5. Actions */}
             <div style={{minWidth: '140px', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', paddingLeft: '1rem', alignItems: 'center'}}>
               {bill.status === 'Unpaid' ? (
-                editingBillId === bill._id ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => saveEditBill(bill._id)}
-                      style={{
-                        background: 'rgba(34,197,94,0.15)', border: '1px solid var(--accent-success)',
-                        color: 'var(--accent-success)', padding: '0.45rem', borderRadius: '6px',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}
-                      title="Save"
-                    >
-                      <Check size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelEditBill}
-                      style={{
-                        background: 'rgba(148,163,184,0.15)', border: '1px solid var(--text-muted)',
-                        color: 'var(--text-muted)', padding: '0.45rem', borderRadius: '6px',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}
-                      title="Cancel"
-                    >
-                      <X size={18} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {/* Edit / Cancel buttons */}
-                    <button
-                      type="button"
-                      onClick={() => startEditBill(bill)}
-                      style={{
-                        background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
-                        color: 'var(--accent-primary)', padding: '0.45rem', borderRadius: '6px',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}
-                      title="Edit Amount / Details"
-                    >
-                      <Edit2 size={16} />
-                    </button>
+                <>
+                  {/* Edit / Cancel buttons */}
+                  <button
+                    type="button"
+                    onClick={() => startEditBill(bill)}
+                    style={{
+                      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
+                      color: 'var(--accent-primary)', padding: '0.45rem', borderRadius: '6px',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                    title="Edit Amount / Details"
+                  >
+                    <Edit2 size={16} />
+                  </button>
 
                     {/* Delete bill button */}
                     <button
@@ -854,9 +788,9 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               padding: '1.75rem 2rem 1.25rem',
               borderBottom: '1px solid var(--border-color)'
             }}>
-              <h2 style={{ fontFamily: 'Merriweather, serif', fontSize: '1.4rem', color: '#1e293b', margin: 0 }}>New entry</h2>
+              <h2 style={{ fontFamily: 'Merriweather, serif', fontSize: '1.4rem', color: '#1e293b', margin: 0 }}>{isDrawerEditMode ? 'Edit entry' : 'New entry'}</h2>
               <button
-                onClick={() => setIsDrawerOpen(false)}
+                onClick={() => { setIsDrawerOpen(false); setIsDrawerEditMode(false); setEditingBillId(null); }}
                 style={{
                   background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px',
                   width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1003,7 +937,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               }}>
                 <button
                   type="button"
-                  onClick={() => setIsDrawerOpen(false)}
+                  onClick={() => { setIsDrawerOpen(false); setIsDrawerEditMode(false); setEditingBillId(null); }}
                   style={{
                     padding: '0.75rem 1.75rem', borderRadius: '8px',
                     border: '1px solid var(--border-color)', background: 'white',
@@ -1017,7 +951,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                     border: 'none', background: '#1e293b',
                     color: 'white', fontSize: '0.95rem', cursor: 'pointer', fontWeight: '600'
                   }}
-                >Add to register</button>
+                >{isDrawerEditMode ? 'Save Changes' : 'Add to register'}</button>
               </div>
 
             </form>

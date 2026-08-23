@@ -190,10 +190,34 @@ router.delete('/:type/:id', async (req, res) => {
   }
 });
 
-router.put('/:type/:id', async (req, res) => {
+router.put('/:type/:id', upload.any(), async (req, res) => {
   try {
     const Model = models[req.params.type];
     if (!Model) return res.status(404).json({ error: 'Invalid type' });
+
+    // Parse details if sent as a JSON string (from FormData)
+    if (typeof req.body.details === 'string') {
+      try {
+        req.body.details = JSON.parse(req.body.details);
+      } catch (e) {
+        req.body.details = {};
+      }
+    }
+    
+    // If details doesn't exist, initialize it
+    if (!req.body.details) req.body.details = {};
+
+    // Attach uploaded files to details
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        const fieldName = file.fieldname; 
+        if (fieldName.startsWith('file_')) {
+          const detailKey = fieldName.replace('file_', '');
+          req.body.details[detailKey] = file.path;
+        }
+      });
+    }
+
     const data = await Model.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!data) return res.status(404).json({ error: 'Document not found' });
     res.json(data);
