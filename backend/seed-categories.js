@@ -11,8 +11,8 @@ const missingCategories = [
   { name: 'Internet bill', module: 'expenses', fields: [{ name: 'accountId', label: 'Account ID', type: 'text', required: true }] },
   
   // INVESTMENTS (module: 'investments')
-  { name: 'Mutual funds - SIP', module: 'investments', fields: [{ name: 'fundName', label: 'Fund Name', type: 'text', required: true }, { name: 'folioNumber', label: 'Folio Number', type: 'text' }, { name: 'holderName', label: 'Holder Name', type: 'text' }] },
-  { name: 'Mutual funds - Lumpsum', module: 'investments', fields: [{ name: 'fundName', label: 'Fund Name', type: 'text', required: true }, { name: 'folioNumber', label: 'Folio Number', type: 'text' }, { name: 'holderName', label: 'Holder Name', type: 'text' }] },
+  { name: 'Mutual funds - SIP', module: 'investments', fields: [{ name: 'fundName', label: 'Fund Name', type: 'text', required: true }, { name: 'folioNumber', label: 'Folio Number', type: 'text' }, { name: 'holderName', label: 'Holder Name', type: 'text' }, { name: 'startDate', label: 'Start Date', type: 'date' }] },
+  { name: 'Mutual funds - Lumpsum', module: 'investments', fields: [{ name: 'fundName', label: 'Fund Name', type: 'text', required: true }, { name: 'folioNumber', label: 'Folio Number', type: 'text' }, { name: 'holderName', label: 'Holder Name', type: 'text' }, { name: 'startDate', label: 'Start Date', type: 'date' }] },
   
   // INSURANCE (module: 'insurances')
   { name: 'Postal insurance (PLI / RPLI)', module: 'insurances', fields: [{ name: 'policyNumber', label: 'Policy Number', type: 'text', required: true }] },
