@@ -227,7 +227,7 @@ router.put('/:type/:id', upload.any(), async (req, res) => {
     if (!data) return res.status(404).json({ error: 'Document not found' });
     
     // Auto-sync InvestmentLedger if Mutual Fund Start Date is updated
-    if (modelType === 'expenses' && data.category && data.category.toLowerCase().includes('mutual funds')) {
+    if (req.params.type === 'expenses' && data.category && data.category.toLowerCase().includes('mutual funds')) {
       if (data.details && data.details.startDate) {
         const InvestmentLedger = require('../models/InvestmentLedger');
         const ledger = await InvestmentLedger.findOne({ expenseId: data._id });
