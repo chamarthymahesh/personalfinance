@@ -23,7 +23,7 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
                 name: 'interestType',
                 label: 'Interest Type',
                 type: 'select',
-                options: ['Simple Interest', 'Compound Interest'],
+                options: ['Simple Interest', 'Compound Interest', 'Yearly Compound Interest'],
                 required: true
               }
             ]
