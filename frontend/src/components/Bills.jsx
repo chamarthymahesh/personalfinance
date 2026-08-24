@@ -493,9 +493,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const categoryName = selectedCategory ? selectedCategory.name : 'Bills & Expenses';
   const categoryModule = selectedCategory ? selectedCategory.module : '';
   const filteredBills = selectedCategory ? bills.filter(b => b.category === selectedCategory.name) : bills;
-  const displayBills = showClosed ? filteredBills : filteredBills.filter(b => b.status === 'Unpaid');
-  const searchFilteredBills = searchQuery.trim() !== ''
-    ? displayBills.filter(b => {
+  const searchedBaseBills = searchQuery.trim() !== ''
+    ? filteredBills.filter(b => {
         const q = searchQuery.toLowerCase();
         if (b.title?.toLowerCase().includes(q)) return true;
         if (b.category?.toLowerCase().includes(q)) return true;
@@ -504,15 +503,17 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         }
         return false;
       })
-    : displayBills;
+    : filteredBills;
+
+  const displayBills = showClosed ? searchedBaseBills : searchedBaseBills.filter(b => b.status === 'Unpaid');
 
   const isInsuranceCategory = selectedCategory?.module === 'insurances';
   const isLoanCategory = selectedCategory?.module === 'loans';
   const hasPaymentHistory = isInsuranceCategory || isLoanCategory;
-  const activeRecords = filteredBills.filter(b => b.status === 'Unpaid').length;
-  const normalizedMonthlyTotal = filteredBills.filter(b => b.status === 'Unpaid').reduce((sum, b) => sum + b.amount, 0);
+  const activeRecords = searchedBaseBills.filter(b => b.status === 'Unpaid').length;
+  const normalizedMonthlyTotal = searchedBaseBills.filter(b => b.status === 'Unpaid').reduce((sum, b) => sum + b.amount, 0);
   const totalPaidAllTime = hasPaymentHistory
-    ? filteredBills.filter(b => b.status === 'Paid').reduce((sum, b) => sum + b.amount, 0)
+    ? searchedBaseBills.filter(b => b.status === 'Paid').reduce((sum, b) => sum + b.amount, 0)
     : 0;
 
   return (
@@ -552,7 +553,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
           <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'linear-gradient(135deg, #064e3b, #065f46)', border: '1px solid #059669', borderLeft: '4px solid #4ade80', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
             <div style={{fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem'}}>Total Paid (All Time)</div>
             <div style={{fontSize: '2rem', fontWeight: '700', color: '#4ade80', fontFamily: 'Merriweather, serif'}}>₹{totalPaidAllTime.toLocaleString()}</div>
-            <div style={{fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.4rem'}}>{filteredBills.filter(b => b.status === 'Paid').length} instalment(s) recorded</div>
+            <div style={{fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.4rem'}}>{searchedBaseBills.filter(b => b.status === 'Paid').length} instalment(s) recorded</div>
           </div>
         )}
         <div style={{display: 'flex', alignItems: 'center', gap: '1.5rem', marginLeft: 'auto', padding: '1rem'}}>
@@ -581,13 +582,13 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       
       {/* MODERN LIST VIEW */}
       <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-        {searchFilteredBills.length === 0 && (
+        {displayBills.length === 0 && (
           <div className="glass-card" style={{textAlign: 'center', padding: '4rem 2rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: 'var(--glass-shadow)'}}>
             <p style={{color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic'}}>No {categoryName.toLowerCase()} records yet. Add the first one.</p>
           </div>
         )}
 
-        {searchFilteredBills.map(bill => (
+        {displayBills.map(bill => (
           <div key={bill._id} className="glass-card" style={{
             display: 'flex', alignItems: 'center', padding: '1.5rem', 
             transition: 'transform 0.2s, background 0.2s', cursor: 'default',
