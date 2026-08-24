@@ -292,8 +292,15 @@ export default function LendingLedgerModal({ bill, onClose }) {
                       onChange={(e) => setSetupForm({ ...setupForm, interestType: e.target.value })}
                     >
                       <option value="Simple Interest">Simple Interest</option>
-                      <option value="Compound Interest">Compound Interest</option>
+                      <option value="Compound Interest">Compound Interest (Monthly)</option>
+                      <option value="Yearly Compound Interest">Yearly Compound Interest (Annual)</option>
                     </select>
+                    {setupForm.interestType === 'Yearly Compound Interest' && (
+                      <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '6px', fontSize: '0.75rem', color: '#92400e', lineHeight: 1.5 }}>
+                        📅 Interest is calculated monthly on the principal. At each year anniversary, accumulated interest is added to the principal for the next year.
+                        <br/><strong>Example:</strong> ₹1,00,000 @ 2%/mo → Year 1: ₹2,000/mo. Year 2: ₹2,480/mo (on ₹1,24,000)
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button type="submit" disabled={actionLoading} style={{
@@ -318,13 +325,27 @@ export default function LendingLedgerModal({ bill, onClose }) {
                 <div style={{ padding: '1rem', background: 'white', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Interest Rate</div>
                   <div style={{ fontSize: '1.3rem', fontWeight: '700' }}>{ledger.interestRate}% / mo</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>({ledger.interestType || 'Simple Interest'})</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                    {ledger.interestType === 'Yearly Compound Interest'
+                      ? '📅 Yearly Compound'
+                      : ledger.interestType === 'Compound Interest'
+                      ? '🔁 Monthly Compound'
+                      : '➖ Simple Interest'}
+                  </div>
                 </div>
                 <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px' }}>
                   <div style={{ fontSize: '0.75rem', color: '#991b1b', marginBottom: '0.4rem' }}>Outstanding Balance</div>
                   <div style={{ fontSize: '1.3rem', fontWeight: '700', color: '#dc2626' }}>₹{ledger.outstandingBalance.toLocaleString('en-IN')}</div>
                 </div>
               </div>
+
+              {/* Yearly Compound info badge */}
+              {ledger.interestType === 'Yearly Compound Interest' && (
+                <div style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '0.82rem', color: '#92400e', lineHeight: 1.6 }}>
+                  📅 <strong>Yearly Compound Interest:</strong> Monthly interest is calculated on the principal only. At each loan anniversary (yearly), accumulated interest is rolled into the principal for the next year.<br/>
+                  <span style={{ fontSize: '0.78rem' }}>E.g. ₹1,00,000 @ 2%/mo → Year 1: ₹2,000/mo | Year 2 (on ₹1,24,000): ₹2,480/mo</span>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>

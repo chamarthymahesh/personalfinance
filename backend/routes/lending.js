@@ -130,6 +130,63 @@ function getPrincipalAt(entries, atDate) {
   return principal;
 }
 
+// Helper: compute effective principal for Yearly Compound Interest.
+// Within each year, interest is based on the year's opening principal.
+// At each year-end anniversary, that year's accumulated interest is added to principal.
+function getYearlyCompoundPrincipalAt(entries, startDate, atDate) {
+  const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Build a timeline of payments and the opening balance
+  let originalPrincipal = 0;
+  const payments = []; // { date, amount }
+
+  for (const e of sorted) {
+    if (new Date(e.date) > atDate) break;
+    if (e.type === 'opening') originalPrincipal = e.amount;
+    if (e.type === 'partial_payment') payments.push({ date: new Date(e.date), amount: e.amount });
+  }
+
+  // Walk year by year from startDate up to atDate
+  const start = new Date(startDate);
+  let effectivePrincipal = originalPrincipal;
+  let yearStart = new Date(start);
+
+  while (true) {
+    // The anniversary of this year
+    const yearEnd = new Date(yearStart);
+    yearEnd.setFullYear(yearEnd.getFullYear() + 1);
+
+    // If the anniversary hasn't happened yet relative to atDate, stop
+    if (yearEnd > atDate) break;
+
+    // Accumulate all interest for this year based on effectivePrincipal
+    // (12 full months at rate% each = rate * 12 on effectivePrincipal)
+    // But we need to account for any partial months at start/end — simplest:
+    // year interest = effectivePrincipal * rate * 12 / 100
+    // Then at year-end, add it to principal
+    // However we also reduce principal for payments made THIS year
+    let principalThisYear = effectivePrincipal;
+    for (const p of payments) {
+      if (p.date >= yearStart && p.date < yearEnd) {
+        principalThisYear = parseFloat((principalThisYear - p.amount).toFixed(2));
+        if (principalThisYear < 0) principalThisYear = 0;
+      }
+    }
+    effectivePrincipal = principalThisYear;
+    yearStart = yearEnd;
+  }
+
+  // Also apply any payments made after the last anniversary up to atDate
+  for (const p of payments) {
+    if (p.date >= yearStart && p.date <= atDate) {
+      effectivePrincipal = parseFloat((effectivePrincipal - p.amount).toFixed(2));
+      if (effectivePrincipal < 0) effectivePrincipal = 0;
+    }
+  }
+
+  return effectivePrincipal;
+}
+
 // Automatically sync all missing accrued interest (using Simple Interest on Principal)
 router.post('/:id/sync-interest', async (req, res) => {
   try {
@@ -159,10 +216,14 @@ router.post('/:id/sync-interest', async (req, res) => {
         const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
         
         // Evaluate basis at the end of the period (before interest is applied)
-        const isCompound = ledger.interestType === 'Compound Interest';
-        const basisAmount = isCompound
-          ? getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1))
-          : getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        let basisAmount;
+        if (ledger.interestType === 'Compound Interest') {
+          basisAmount = getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        } else if (ledger.interestType === 'Yearly Compound Interest') {
+          basisAmount = getYearlyCompoundPrincipalAt(ledger.entries, ledger.startDate, new Date(periodEnd.getTime() - 1));
+        } else {
+          basisAmount = getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        }
         const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
         const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
         
@@ -248,10 +309,14 @@ router.post('/:id/recalculate-interest', async (req, res) => {
       if (daysElapsed > 0) {
         const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
         
-        const isCompound = ledger.interestType === 'Compound Interest';
-        const basisAmount = isCompound
-          ? getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1))
-          : getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        let basisAmount;
+        if (ledger.interestType === 'Compound Interest') {
+          basisAmount = getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        } else if (ledger.interestType === 'Yearly Compound Interest') {
+          basisAmount = getYearlyCompoundPrincipalAt(ledger.entries, ledger.startDate, new Date(periodEnd.getTime() - 1));
+        } else {
+          basisAmount = getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        }
         const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
         const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
         
@@ -387,10 +452,14 @@ async function recalculateLedgerInterest(ledger) {
     if (daysElapsed > 0) {
       const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
       
-      const isCompound = ledger.interestType === 'Compound Interest';
-      const basisAmount = isCompound
-        ? getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1))
-        : getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+      let basisAmount;
+      if (ledger.interestType === 'Compound Interest') {
+        basisAmount = getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+      } else if (ledger.interestType === 'Yearly Compound Interest') {
+        basisAmount = getYearlyCompoundPrincipalAt(ledger.entries, ledger.startDate, new Date(periodEnd.getTime() - 1));
+      } else {
+        basisAmount = getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+      }
       const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
       const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
       
