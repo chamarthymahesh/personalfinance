@@ -11,7 +11,8 @@ export default function LendingLedgerModal({ bill, onClose }) {
   const [setupForm, setSetupForm] = useState({
     principalAmount: bill.amount || '',
     interestRate: bill.details?.interestRate || '',
-    startDate: new Date().toISOString().split('T')[0]
+    startDate: new Date().toISOString().split('T')[0],
+    interestType: bill.details?.interestType || 'Simple Interest'
   });
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], note: '', paymentMode: '', proofFile: null });
@@ -44,7 +45,8 @@ export default function LendingLedgerModal({ bill, onClose }) {
         personName: bill.details?.personName || bill.title,
         principalAmount: parseFloat(setupForm.principalAmount),
         interestRate: parseFloat(setupForm.interestRate) || 0,
-        startDate: setupForm.startDate
+        startDate: setupForm.startDate,
+        interestType: setupForm.interestType
       });
       setLedger(res.data);
       setShowSetup(false);
@@ -156,7 +158,7 @@ export default function LendingLedgerModal({ bill, onClose }) {
     doc.setFontSize(10);
     doc.text(`Name: ${ledger.personName}`, 14, 56);
     doc.text(`Principal Amount: Rs.${ledger.principalAmount.toLocaleString('en-IN')}`, 14, 63);
-    doc.text(`Interest Rate: ${ledger.interestRate}% per month`, 14, 70);
+    doc.text(`Interest Rate: ${ledger.interestRate}% per month (${ledger.interestType || 'Simple Interest'})`, 14, 70);
     doc.text(`Start Date: ${new Date(ledger.startDate).toLocaleDateString('en-IN')}`, 14, 77);
 
     doc.setFont('helvetica', 'bold');
@@ -275,12 +277,24 @@ export default function LendingLedgerModal({ bill, onClose }) {
                     />
                   </div>
                 </div>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={labelStyle}>Start Date</label>
-                  <input type="date" required style={{ ...inputStyle, width: 'calc(50% - 0.5rem)' }}
-                    value={setupForm.startDate}
-                    onChange={(e) => setSetupForm({ ...setupForm, startDate: e.target.value })}
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <label style={labelStyle}>Start Date</label>
+                    <input type="date" required style={inputStyle}
+                      value={setupForm.startDate}
+                      onChange={(e) => setSetupForm({ ...setupForm, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Interest Type</label>
+                    <select style={inputStyle}
+                      value={setupForm.interestType}
+                      onChange={(e) => setSetupForm({ ...setupForm, interestType: e.target.value })}
+                    >
+                      <option value="Simple Interest">Simple Interest</option>
+                      <option value="Compound Interest">Compound Interest</option>
+                    </select>
+                  </div>
                 </div>
                 <button type="submit" disabled={actionLoading} style={{
                   padding: '0.75rem 2rem', background: '#1e293b', color: 'white',
@@ -304,6 +318,7 @@ export default function LendingLedgerModal({ bill, onClose }) {
                 <div style={{ padding: '1rem', background: 'white', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Interest Rate</div>
                   <div style={{ fontSize: '1.3rem', fontWeight: '700' }}>{ledger.interestRate}% / mo</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>({ledger.interestType || 'Simple Interest'})</div>
                 </div>
                 <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px' }}>
                   <div style={{ fontSize: '0.75rem', color: '#991b1b', marginBottom: '0.4rem' }}>Outstanding Balance</div>

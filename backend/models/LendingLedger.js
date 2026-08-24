@@ -57,6 +57,11 @@ const LendingLedgerSchema = new mongoose.Schema({
     required: true,
     default: 0
   },
+  interestType: {
+    type: String,
+    enum: ['Simple Interest', 'Compound Interest'],
+    default: 'Simple Interest'
+  },
   startDate: {
     type: Date,
     required: true,

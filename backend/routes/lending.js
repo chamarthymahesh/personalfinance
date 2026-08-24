@@ -32,7 +32,7 @@ router.get('/:expenseId', async (req, res) => {
 // Create a new ledger for a lending entry
 router.post('/', async (req, res) => {
   try {
-    const { expenseId, personName, principalAmount, interestRate, startDate } = req.body;
+    const { expenseId, personName, principalAmount, interestRate, startDate, interestType } = req.body;
     
     const existing = await LendingLedger.findOne({ expenseId });
     if (existing) return res.status(400).json({ error: 'Ledger already exists for this entry' });
@@ -42,6 +42,7 @@ router.post('/', async (req, res) => {
       personName,
       principalAmount,
       interestRate: interestRate || 0,
+      interestType: interestType || 'Simple Interest',
       startDate: startDate || new Date(),
       outstandingBalance: principalAmount,
       entries: [{
@@ -157,9 +158,12 @@ router.post('/:id/sync-interest', async (req, res) => {
       if (daysElapsed > 0) {
         const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
         
-        // Evaluate principal at the end of the period (before interest is applied)
-        const principalAtPeriodEnd = getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
-        const fullInterest = parseFloat(((principalAtPeriodEnd * ledger.interestRate) / 100).toFixed(2));
+        // Evaluate basis at the end of the period (before interest is applied)
+        const isCompound = ledger.interestType === 'Compound Interest';
+        const basisAmount = isCompound
+          ? getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1))
+          : getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
         const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
         
         const monthLabel = currentStart.toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -244,8 +248,11 @@ router.post('/:id/recalculate-interest', async (req, res) => {
       if (daysElapsed > 0) {
         const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
         
-        const principalAtPeriodEnd = getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
-        const fullInterest = parseFloat(((principalAtPeriodEnd * ledger.interestRate) / 100).toFixed(2));
+        const isCompound = ledger.interestType === 'Compound Interest';
+        const basisAmount = isCompound
+          ? getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1))
+          : getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
         const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
         
         const monthLabel = currentStart.toLocaleString('default', { month: 'short', year: 'numeric' });
