@@ -159,12 +159,17 @@ router.post('/:type', upload.any(), async (req, res) => {
     // If details doesn't exist, initialize it
     if (!req.body.details) req.body.details = {};
     
-    // Inject uploaded file paths into details
+    // Inject uploaded file paths into details or top-level fields
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
-        // fieldname will be something like 'file_rentalAgreement'
-        const keyName = file.fieldname.replace('file_', '');
-        req.body.details[keyName] = file.path;
+        if (file.fieldname === 'paymentProof') {
+          // Save payment proof path at top-level (not inside details)
+          req.body.paymentProof = file.path;
+        } else {
+          // fieldname will be something like 'file_rentalAgreement'
+          const keyName = file.fieldname.replace('file_', '');
+          req.body.details[keyName] = file.path;
+        }
       });
     }
     

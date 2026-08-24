@@ -71,7 +71,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
     frequency: 'Monthly',
     dueDate: '',
     remarks: '',
-    details: {}
+    details: {},
+    paymentProofFile: null
   });
 
   useEffect(() => {
@@ -198,11 +199,10 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       if (formData.title && formData.title !== formData.category) {
          autoTitle = formData.title;
       }
-      const payload = { ...formData, title: autoTitle };
-      
-      const hasFiles = Object.values(formData.details).some(val => val instanceof File);
-      
-      let requestData = payload;
+
+      const hasFiles = Object.values(formData.details).some(val => val instanceof File) || !!formData.paymentProofFile;
+
+      let requestData;
       let requestConfig = {};
 
       if (hasFiles) {
@@ -213,7 +213,9 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         data.append('frequency', formData.frequency);
         if (formData.dueDate) data.append('dueDate', formData.dueDate);
         if (formData.remarks) data.append('remarks', formData.remarks);
-        
+        // Attach payment proof if provided
+        if (formData.paymentProofFile) data.append('paymentProof', formData.paymentProofFile);
+
         const textDetails = {};
         Object.keys(formData.details).forEach(key => {
           const val = formData.details[key];
@@ -225,17 +227,19 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         });
         data.append('details', JSON.stringify(textDetails));
         requestData = data;
-        requestConfig = { headers: { 'Content-Type': 'multipart/form-data' }};
+        requestConfig = { headers: { 'Content-Type': 'multipart/form-data' } };
+      } else {
+        requestData = { ...formData, title: autoTitle };
       }
-      
+
       if (isDrawerEditMode && editingBillId) {
         await axios.put(`${API_URL}/expenses/${editingBillId}`, requestData, requestConfig);
       } else {
         await axios.post(`${API_URL}/expenses`, requestData, requestConfig);
       }
-      
+
       setFormData({
-        title: '', category: selectedCategory ? selectedCategory.name : (categories[0]?.name || ''), amount: '', frequency: 'Monthly', dueDate: '', remarks: '', details: {}
+        title: '', category: selectedCategory ? selectedCategory.name : (categories[0]?.name || ''), amount: '', frequency: 'Monthly', dueDate: '', remarks: '', details: {}, paymentProofFile: null
       });
       setIsNewBiller(true);
       setIsDrawerOpen(false);
@@ -938,7 +942,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               </div>
 
               {/* ---- Remarks ---- */}
-              <div style={{ marginBottom: '2rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Remarks</label>
                 <textarea
                   placeholder="Any remarks..."
@@ -948,6 +952,30 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'white', fontSize: '0.95rem', color: '#1e293b', resize: 'vertical' }}
                 />
               </div>
+
+              {/* ---- Payment Proof Upload (shown for Other expenses) ---- */}
+              {formData.category === 'Other expenses' && (
+                <div style={{ marginBottom: '2rem', padding: '1rem', background: 'rgba(16,185,129,0.05)', border: '1px dashed rgba(16,185,129,0.4)', borderRadius: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#059669', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    📎 Payment Proof (optional)
+                  </label>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                    Upload a screenshot or PDF of the payment made (UPI receipt, bank transfer, etc.)
+                  </div>
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp"
+                    onChange={(e) => setFormData({ ...formData, paymentProofFile: e.target.files[0] || null })}
+                    style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', fontSize: '0.88rem', color: '#1e293b', cursor: 'pointer' }}
+                  />
+                  {formData.paymentProofFile && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      ✅ {formData.paymentProofFile.name}
+                      <button type="button" onClick={() => setFormData({ ...formData, paymentProofFile: null })} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.75rem', padding: '0 0.3rem' }}>✕ Remove</button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ---- Footer buttons ---- */}
               <div style={{

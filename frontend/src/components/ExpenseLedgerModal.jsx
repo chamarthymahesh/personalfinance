@@ -129,6 +129,12 @@ export default function ExpenseLedgerModal({ bill, onClose }) {
                       <tr style={{ background: 'var(--bg-card)', borderBottom: '2px solid var(--border-color)' }}>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Date Paid</th>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Amount</th>
+                        {bill.category === 'Other expenses' && (
+                          <>
+                            <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Sent To</th>
+                            <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Purpose</th>
+                          </>
+                        )}
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Payment Mode</th>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Remarks</th>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Proof</th>
@@ -144,6 +150,16 @@ export default function ExpenseLedgerModal({ bill, onClose }) {
                           <td style={{ padding: '0.75rem', fontWeight: '500', color: 'var(--text-main)' }}>
                             ₹{(record.amount || 0).toLocaleString()}
                           </td>
+                          {bill.category === 'Other expenses' && (
+                            <>
+                              <td style={{ padding: '0.75rem', color: 'var(--text-main)', fontWeight: 500 }}>
+                                {record.details?.sentTo || '-'}
+                              </td>
+                              <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
+                                {record.details?.purpose || '-'}
+                              </td>
+                            </>
+                          )}
                           <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
                             {record.paymentMode || '-'}
                           </td>
