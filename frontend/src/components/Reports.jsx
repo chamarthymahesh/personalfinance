@@ -19,7 +19,17 @@ const CATEGORY_COLORS = [
   '#22d3ee', '#e879f9', '#fb7185', '#a3e635', '#38bdf8'
 ];
 
-const CHART_VIEWS = ['Bar Chart', 'Trend Chart', 'Pie Chart'];
+const SAVINGS_CATEGORIES = [
+  'Mutual Funds', 'Chit Funds', 'Chit fund', 'Fixed Deposit',
+  'Post Office', 'LIC', 'Gold', 'PPF', 'Stocks', 'Bonds', 'SIP'
+];
+
+const isSavings = (category) => {
+  if (!category) return false;
+  return SAVINGS_CATEGORIES.some(s => category.toLowerCase().includes(s.toLowerCase()));
+};
+
+const CHART_VIEWS = ['Bar Chart', 'Trend Chart', 'Pie Chart', 'Savings vs Outgo'];
 
 const formatRupee = (v) =>
   v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` :
@@ -52,6 +62,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('Bar Chart');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [savingsTimeframe, setSavingsTimeframe] = useState('Monthly');
 
   const currentMonthIndex = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -162,6 +173,59 @@ export default function Reports() {
       return row;
     });
   }, [filteredExpenses, trendCategories, selectedYear]);
+
+  // --- Savings vs Outgo Data Calculations ---
+  
+  // 1. Monthly (for selected year)
+  const savingsMonthlyData = useMemo(() => {
+    return MONTHS.map((month, idx) => {
+      const monthExp = yearExpenses.filter(e => getExpenseDate(e).getMonth() === idx);
+      let savings = 0;
+      let expenditure = 0;
+      monthExp.forEach(e => {
+        if (isSavings(e.category)) savings += e.amount;
+        else expenditure += e.amount;
+      });
+      return { name: month.substring(0, 3), Savings: savings, Expenditure: expenditure };
+    });
+  }, [yearExpenses]);
+
+  // 2. Quarterly (for selected year)
+  const QUARTERS = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'];
+  const savingsQuarterlyData = useMemo(() => {
+    return QUARTERS.map((q, idx) => {
+      const qExp = yearExpenses.filter(e => Math.floor(getExpenseDate(e).getMonth() / 3) === idx);
+      let savings = 0;
+      let expenditure = 0;
+      qExp.forEach(e => {
+        if (isSavings(e.category)) savings += e.amount;
+        else expenditure += e.amount;
+      });
+      return { name: q, Savings: savings, Expenditure: expenditure };
+    });
+  }, [yearExpenses]);
+
+  // 3. Yearly (Multi-year)
+  const savingsYearlyData = useMemo(() => {
+    return YEARS.map(year => {
+      // Use expenses (unfiltered by category) to show overall savings vs outgo across all years
+      const yExp = expenses.filter(e => getExpenseDate(e).getFullYear().toString() === year);
+      let savings = 0;
+      let expenditure = 0;
+      yExp.forEach(e => {
+        if (isSavings(e.category)) savings += e.amount;
+        else expenditure += e.amount;
+      });
+      return { name: year, Savings: savings, Expenditure: expenditure };
+    }).filter(y => y.Savings > 0 || y.Expenditure > 0);
+  }, [expenses]);
+
+  const activeSavingsData = savingsTimeframe === 'Monthly' ? savingsMonthlyData :
+                            savingsTimeframe === 'Quarterly' ? savingsQuarterlyData : 
+                            savingsYearlyData;
+
+  const totalSelectedSavings = useMemo(() => activeSavingsData.reduce((s, d) => s + d.Savings, 0), [activeSavingsData]);
+  const totalSelectedExpenditure = useMemo(() => activeSavingsData.reduce((s, d) => s + d.Expenditure, 0), [activeSavingsData]);
 
   const selectStyle = {
     padding: '0.6rem 1rem',
@@ -290,11 +354,25 @@ export default function Reports() {
               {activeView === 'Bar Chart' && `${selectedYear} — Category Breakdown`}
               {activeView === 'Trend Chart' && `Multi-Year Category Trend`}
               {activeView === 'Pie Chart' && `${selectedYear} — Spend Distribution`}
+              {activeView === 'Savings vs Outgo' && `Savings vs Expenditure`}
             </h2>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              {selectedCategory !== 'All' ? `Filtered: ${selectedCategory}` : 'All categories'}
+              {selectedCategory !== 'All' && activeView !== 'Savings vs Outgo' ? `Filtered: ${selectedCategory}` : 
+               activeView === 'Savings vs Outgo' ? `Overview across all categories` : 'All categories'}
             </div>
           </div>
+          {activeView === 'Savings vs Outgo' && (
+            <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden' }}>
+              {['Monthly', 'Quarterly', 'Yearly'].map(tf => (
+                <button key={tf} onClick={() => setSavingsTimeframe(tf)} style={{
+                  padding: '0.4rem 0.8rem', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
+                  background: savingsTimeframe === tf ? 'var(--accent)' : 'transparent',
+                  color: savingsTimeframe === tf ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s'
+                }}>{tf}</button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bar Chart */}
@@ -390,6 +468,36 @@ export default function Reports() {
               No data for {selectedYear}
             </div>
           )
+        )}
+
+        {/* Savings vs Outgo Chart */}
+        {activeView === 'Savings vs Outgo' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '200px', padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>Total Savings ({savingsTimeframe})</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', fontFamily: 'monospace' }}>₹{totalSelectedSavings.toLocaleString()}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: '200px', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#b91c1c', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>Total Outgo ({savingsTimeframe})</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444', fontFamily: 'monospace' }}>₹{totalSelectedExpenditure.toLocaleString()}</div>
+              </div>
+            </div>
+            
+            <div style={{ height: '340px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={activeSavingsData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={formatRupee} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-hover, rgba(99,102,241,0.04))' }} />
+                  <Legend wrapperStyle={{ fontSize: '0.8rem', color: 'var(--text-muted)', paddingTop: '1rem' }} />
+                  <Bar dataKey="Savings" fill="#10b981" radius={[4, 4, 0, 0]} barSize={savingsTimeframe === 'Monthly' ? 20 : 40} />
+                  <Bar dataKey="Expenditure" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={savingsTimeframe === 'Monthly' ? 20 : 40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         )}
       </div>
 
