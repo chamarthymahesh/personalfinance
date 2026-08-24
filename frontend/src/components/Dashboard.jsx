@@ -74,9 +74,14 @@ export default function Dashboard({ onNewEntry }) {
   const monthlyOutgo = unpaidExpenses.reduce((sum, e) => sum + e.amount, 0);
   const activeRecords = unpaidExpenses.length;
 
-  // Mocked data as per plan
-  const monthlyIncome = 0;
-  const monthlyInvestment = 0;
+  // Calculate actual data instead of mock
+  const monthlyIncome = unpaidExpenses
+    .filter(e => e.category.toLowerCase().includes('income') || e.category.toLowerCase().includes('interest given'))
+    .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  const monthlyInvestment = unpaidExpenses
+    .filter(e => e.category.toLowerCase().includes('mutual funds - sip'))
+    .reduce((sum, e) => sum + (e.amount || 0), 0);
 
   // Chart Data preparation
   const chartDataMap = {};
