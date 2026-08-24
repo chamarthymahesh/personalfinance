@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Paperclip, CheckCircle } from 'lucide-react';
+import { X, Paperclip, CheckCircle, Plus } from 'lucide-react';
 import { SERVER_URL, API_URL } from '../config';
 
 export default function ExpenseLedgerModal({ bill, onClose }) {
