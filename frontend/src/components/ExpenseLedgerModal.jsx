@@ -98,7 +98,7 @@ export default function ExpenseLedgerModal({ bill, onClose }) {
                 }}>
                   <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '0.5rem' }}>Total Paid All Time</div>
                   <div style={{ fontSize: '2.5rem', fontWeight: 'bold', fontFamily: 'Merriweather, serif' }}>
-                    ₹{historyData.totalPaid.toLocaleString()}
+                    ₹{historyData.totalPaid.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div style={{
@@ -148,7 +148,7 @@ export default function ExpenseLedgerModal({ bill, onClose }) {
                             {record.paidDate ? new Date(record.paidDate).toLocaleDateString() : new Date(record.dueDate).toLocaleDateString()}
                           </td>
                           <td style={{ padding: '0.75rem', fontWeight: '500', color: 'var(--text-main)' }}>
-                            ₹{(record.amount || 0).toLocaleString()}
+                            ₹{(record.amount || 0).toLocaleString('en-IN')}
                           </td>
                           {bill.category === 'Other expenses' && (
                             <>

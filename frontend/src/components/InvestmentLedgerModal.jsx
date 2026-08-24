@@ -118,7 +118,7 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
     }
 
     const confirm = window.confirm(
-      `This will auto-generate one ${frequency.toLowerCase()} SIP entry of ₹${sipAmount.toLocaleString()} for every month from ${new Date(startDate).toLocaleDateString()} up to today.\n\nProceed?`
+      `This will auto-generate one ${frequency.toLowerCase()} SIP entry of ₹${sipAmount.toLocaleString('en-IN')} for every month from ${new Date(startDate).toLocaleDateString()} up to today.\n\nProceed?`
     );
     if (!confirm) return;
 
@@ -189,7 +189,7 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
                 }}>
                   <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '0.5rem' }}>Total Invested Amount</div>
                   <div style={{ fontSize: '2.5rem', fontWeight: 'bold', fontFamily: 'Merriweather, serif' }}>
-                    ₹{ledger.totalInvested.toLocaleString()}
+                    ₹{ledger.totalInvested.toLocaleString('en-IN')}
                   </div>
                 </div>
               </div>
@@ -351,10 +351,10 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
                             )}
                           </td>
                           <td style={{ padding: '0.75rem', fontWeight: '500', color: (entry.type === 'withdraw' ? 'var(--accent-danger)' : 'var(--accent-success)') }}>
-                            {entry.type === 'withdraw' ? '-' : '+'}₹{entry.amount.toLocaleString()}
+                            {entry.type === 'withdraw' ? '-' : '+'}₹{entry.amount.toLocaleString('en-IN')}
                           </td>
                           <td style={{ padding: '0.75rem', fontWeight: '600', color: 'var(--text-main)' }}>
-                            ₹{entry.totalInvestedAfter.toLocaleString()}
+                            ₹{entry.totalInvestedAfter.toLocaleString('en-IN')}
                           </td>
                           <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
                             {entry.note || '-'}

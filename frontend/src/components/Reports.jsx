@@ -50,7 +50,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       <div style={{ fontWeight: 700, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>{label}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ color: p.color, marginBottom: '0.15rem' }}>
-          {p.name}: <strong>₹{Number(p.value).toLocaleString()}</strong>
+          {p.name}: <strong>₹{Number(p.value).toLocaleString('en-IN')}</strong>
         </div>
       ))}
     </div>
@@ -312,7 +312,7 @@ export default function Reports() {
             Overall Total {selectedCategory !== 'All' ? `· ${selectedCategory}` : ''}
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 700, color: '#fff', fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
-            ₹{overallTotal.toLocaleString()}
+            ₹{overallTotal.toLocaleString('en-IN')}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', marginTop: '0.5rem' }}>
             across all years
@@ -325,7 +325,7 @@ export default function Reports() {
             {selectedYear} Total
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
-            ₹{totalYearPaid.toLocaleString()}
+            ₹{totalYearPaid.toLocaleString('en-IN')}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
             full year paid
@@ -338,7 +338,7 @@ export default function Reports() {
             {selectedMonth.substring(0, 3)} {selectedYear}
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
-            ₹{totalMonthPaid.toLocaleString()}
+            ₹{totalMonthPaid.toLocaleString('en-IN')}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
             this month paid
@@ -458,7 +458,7 @@ export default function Reports() {
                   <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem' }}>
                     <div style={{ width: 12, height: 12, borderRadius: 3, background: categoryColorMap[entry.name] || CATEGORY_COLORS[i % CATEGORY_COLORS.length], flexShrink: 0 }} />
                     <span style={{ color: 'var(--text-main)', flex: 1 }}>{entry.name}</span>
-                    <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>₹{entry.amount.toLocaleString()}</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>₹{entry.amount.toLocaleString('en-IN')}</span>
                   </div>
                 ))}
               </div>
@@ -476,11 +476,11 @@ export default function Reports() {
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '200px', padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px' }}>
                 <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>Total Savings ({savingsTimeframe})</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', fontFamily: 'monospace' }}>₹{totalSelectedSavings.toLocaleString()}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', fontFamily: 'monospace' }}>₹{totalSelectedSavings.toLocaleString('en-IN')}</div>
               </div>
               <div style={{ flex: 1, minWidth: '200px', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px' }}>
                 <div style={{ fontSize: '0.75rem', color: '#b91c1c', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>Total Outgo ({savingsTimeframe})</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444', fontFamily: 'monospace' }}>₹{totalSelectedExpenditure.toLocaleString()}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444', fontFamily: 'monospace' }}>₹{totalSelectedExpenditure.toLocaleString('en-IN')}</div>
               </div>
             </div>
             
@@ -522,7 +522,7 @@ export default function Reports() {
                         {item.name}
                       </span>
                       <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                        ₹{item.amount.toLocaleString()}
+                        ₹{item.amount.toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div style={{ height: 4, borderRadius: 99, background: 'var(--border-color)', overflow: 'hidden' }}>
@@ -558,7 +558,7 @@ export default function Reports() {
                         {item.name}
                       </span>
                       <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                        ₹{item.amount.toLocaleString()}
+                        ₹{item.amount.toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div style={{ height: 4, borderRadius: 99, background: 'var(--border-color)', overflow: 'hidden' }}>
@@ -612,7 +612,7 @@ export default function Reports() {
                     </td>
                     <td style={{ padding: '1rem 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>{expense.title}</td>
                     <td style={{ padding: '1rem 0', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                      ₹{expense.amount.toLocaleString()}
+                      ₹{expense.amount.toLocaleString('en-IN')}
                     </td>
                   </tr>
                 );
@@ -622,7 +622,7 @@ export default function Reports() {
               <tr style={{ borderTop: '2px solid var(--border-color)' }}>
                 <td colSpan={3} style={{ padding: '0.9rem 0', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Total</td>
                 <td style={{ padding: '0.9rem 0', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>
-                  ₹{totalMonthPaid.toLocaleString()}
+                  ₹{totalMonthPaid.toLocaleString('en-IN')}
                 </td>
               </tr>
             </tfoot>

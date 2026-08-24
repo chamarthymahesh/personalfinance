@@ -547,12 +547,12 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         </div>
         <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--accent-danger)', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
           <div style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Normalized monthly total</div>
-          <div style={{fontSize: '2rem', fontWeight: '600', color: 'var(--accent-secondary)', fontFamily: 'Merriweather, serif'}}>₹{normalizedMonthlyTotal.toLocaleString()}</div>
+          <div style={{fontSize: '2rem', fontWeight: '600', color: 'var(--accent-secondary)', fontFamily: 'Merriweather, serif'}}>₹{normalizedMonthlyTotal.toLocaleString('en-IN')}</div>
         </div>
         {hasPaymentHistory && (
           <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'linear-gradient(135deg, #064e3b, #065f46)', border: '1px solid #059669', borderLeft: '4px solid #4ade80', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
             <div style={{fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem'}}>Total Paid (All Time)</div>
-            <div style={{fontSize: '2rem', fontWeight: '700', color: '#4ade80', fontFamily: 'Merriweather, serif'}}>₹{totalPaidAllTime.toLocaleString()}</div>
+            <div style={{fontSize: '2rem', fontWeight: '700', color: '#4ade80', fontFamily: 'Merriweather, serif'}}>₹{totalPaidAllTime.toLocaleString('en-IN')}</div>
             <div style={{fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.4rem'}}>{searchedBaseBills.filter(b => b.status === 'Paid').length} instalment(s) recorded</div>
           </div>
         )}
@@ -668,7 +668,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
             {/* 4. Amount */}
             <div style={{textAlign: 'right', minWidth: '120px'}}>
               <div style={{fontSize: '1.4rem', fontWeight: '700', color: bill.status === 'Paid' ? 'var(--text-main)' : 'var(--accent-danger)'}}>
-                ₹{bill.amount.toLocaleString()}
+                ₹{bill.amount.toLocaleString('en-IN')}
               </div>
               <span className={`badge ${bill.status === 'Paid' ? 'badge-success' : 'badge-danger'}`} style={{marginTop: '0.5rem', display: 'inline-block'}}>
                 {bill.status}
@@ -1073,7 +1073,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               <div style={{ marginBottom: '2rem', padding: '1rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Paying for</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' }}>{selectedBillForPayment.title}</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--accent-primary)' }}>₹{selectedBillForPayment.amount.toLocaleString()}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--accent-primary)' }}>₹{selectedBillForPayment.amount.toLocaleString('en-IN')}</div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
@@ -1231,7 +1231,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   <div style={{fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.5rem'}}>Payment History</div>
                   <h2 style={{fontSize: '1.3rem', fontWeight: '700', color: 'white', margin: 0, fontFamily: 'Merriweather, serif'}}>{historyModalBill.title}</h2>
                   <div style={{fontSize: '0.82rem', color: 'rgba(255,255,255,0.55)', marginTop: '0.4rem'}}>
-                    {historyModalBill.category} &bull; {historyModalBill.frequency} &bull; ₹{historyModalBill.amount?.toLocaleString()}/instalment
+                    {historyModalBill.category} &bull; {historyModalBill.frequency} &bull; ₹{historyModalBill.amount?.toLocaleString('en-IN')}/instalment
                   </div>
                 </div>
                 <button
@@ -1249,7 +1249,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               <div style={{marginTop: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem'}}>
                 <div style={{background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.85rem 1rem', border: '1px solid rgba(255,255,255,0.08)'}}>
                   <div style={{fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Total Paid</div>
-                  <div style={{fontSize: '1.4rem', fontWeight: '800', color: '#4ade80'}}>₹{historyData.totalPaid.toLocaleString()}</div>
+                  <div style={{fontSize: '1.4rem', fontWeight: '800', color: '#4ade80'}}>₹{historyData.totalPaid.toLocaleString('en-IN')}</div>
                 </div>
                 <div style={{background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.85rem 1rem', border: '1px solid rgba(255,255,255,0.08)'}}>
                   <div style={{fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Instalments Paid</div>
@@ -1257,7 +1257,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                 </div>
                 <div style={{background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.85rem 1rem', border: '1px solid rgba(255,255,255,0.08)'}}>
                   <div style={{fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Per Instalment</div>
-                  <div style={{fontSize: '1.4rem', fontWeight: '800', color: '#f9a8d4'}}>₹{(historyModalBill.amount || 0).toLocaleString()}</div>
+                  <div style={{fontSize: '1.4rem', fontWeight: '800', color: '#f9a8d4'}}>₹{(historyModalBill.amount || 0).toLocaleString('en-IN')}</div>
                 </div>
               </div>
             </div>
@@ -1321,7 +1321,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   </div>
                   {backfillForm.startDate && (
                     <div style={{fontSize: '0.8rem', color: '#92400e', marginBottom: '1rem', padding: '0.6rem 0.85rem', background: 'rgba(245,158,11,0.12)', borderRadius: '7px'}}>
-                      ⚠️ Will create approximately <strong>{Math.max(0, Math.ceil((new Date() - new Date(backfillForm.startDate)) / (30.44 * 24 * 3600 * 1000)))}</strong> monthly entries &times; <strong>₹{(historyModalBill.amount || 0).toLocaleString()}</strong> each. Existing months are skipped automatically.
+                      ⚠️ Will create approximately <strong>{Math.max(0, Math.ceil((new Date() - new Date(backfillForm.startDate)) / (30.44 * 24 * 3600 * 1000)))}</strong> monthly entries &times; <strong>₹{(historyModalBill.amount || 0).toLocaleString('en-IN')}</strong> each. Existing months are skipped automatically.
                     </div>
                   )}
                   <div style={{display: 'flex', gap: '0.75rem'}}>
@@ -1416,7 +1416,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
                           {/* Amount + badge */}
                           <div style={{textAlign: 'right'}}>
-                            <div style={{fontWeight: '700', color: '#15803d', fontSize: '0.92rem'}}>₹{(record.amount || 0).toLocaleString()}</div>
+                            <div style={{fontWeight: '700', color: '#15803d', fontSize: '0.92rem'}}>₹{(record.amount || 0).toLocaleString('en-IN')}</div>
                             <div style={{display: 'inline-block', fontSize: '0.65rem', background: '#dcfce7', color: '#15803d', padding: '0.1rem 0.45rem', borderRadius: '10px', fontWeight: '700', marginTop: '0.2rem', letterSpacing: '0.05em'}}>✓ PAID</div>
                           </div>
                         </div>
@@ -1432,9 +1432,9 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   }}>
                     <div>
                       <div style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem'}}>Total {historyModalBill?.category?.toLowerCase().includes('loan') ? 'EMI' : 'Premium'} Paid (All Time)</div>
-                      <div style={{color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem'}}>{historyData.count} instalments &times; ₹{(historyModalBill.amount || 0).toLocaleString()}</div>
+                      <div style={{color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem'}}>{historyData.count} instalments &times; ₹{(historyModalBill.amount || 0).toLocaleString('en-IN')}</div>
                     </div>
-                    <div style={{color: '#4ade80', fontWeight: '800', fontSize: '1.5rem', fontFamily: 'Merriweather, serif'}}>₹{historyData.totalPaid.toLocaleString()}</div>
+                    <div style={{color: '#4ade80', fontWeight: '800', fontSize: '1.5rem', fontFamily: 'Merriweather, serif'}}>₹{historyData.totalPaid.toLocaleString('en-IN')}</div>
                   </div>
                 </div>
               )}

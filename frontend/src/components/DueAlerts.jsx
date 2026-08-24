@@ -154,7 +154,7 @@ export default function DueAlerts() {
                 
                 {/* AMOUNT & BUTTON */}
                 <div style={{fontSize: '1.05rem', fontWeight: '600', marginRight: '2rem', color: 'var(--text-main)', fontFamily: 'monospace'}}>
-                  ₹{bill.amount.toLocaleString()}
+                  ₹{bill.amount.toLocaleString('en-IN')}
                 </div>
                 <button onClick={() => handleMarkPaid(bill._id)} style={{
                   background: 'rgba(21, 128, 61, 0.1)', color: '#15803d', border: '1px solid rgba(21, 128, 61, 0.2)', 

@@ -157,15 +157,15 @@ export default function Dashboard({ onNewEntry }) {
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem'}}>
         <div className="dash-card dash-card-outgo">
           <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Monthly outgo (bills, EMIs, premiums)</div>
-          <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>₹{monthlyOutgo.toLocaleString()}</div>
+          <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>₹{monthlyOutgo.toLocaleString('en-IN')}</div>
         </div>
         <div className="dash-card dash-card-income">
           <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Monthly income (rent + interest received)</div>
-          <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>₹{monthlyIncome.toLocaleString()}</div>
+          <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>₹{monthlyIncome.toLocaleString('en-IN')}</div>
         </div>
         <div className="dash-card dash-card-investment">
           <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Monthly investment commitment (SIPs)</div>
-          <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>₹{monthlyInvestment.toLocaleString()}</div>
+          <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>₹{monthlyInvestment.toLocaleString('en-IN')}</div>
         </div>
         <div className="dash-card dash-card-active">
           <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Active records</div>
@@ -219,7 +219,7 @@ export default function Dashboard({ onNewEntry }) {
                     </div>
                   </div>
                   <div style={{fontSize: '1rem', fontWeight: '600', marginRight: '1.5rem'}}>
-                    ₹{bill.amount.toLocaleString()}
+                    ₹{bill.amount.toLocaleString('en-IN')}
                   </div>
                   <button onClick={() => handleMarkPaid(bill)} style={{background: 'rgba(21, 128, 61, 0.1)', color: '#15803d', border: '1px solid rgba(21, 128, 61, 0.2)', padding: '0.3rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem'}}>
                     <CheckCircle2 size={14} /> Mark paid
@@ -253,7 +253,7 @@ export default function Dashboard({ onNewEntry }) {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value) => `₹${value.toLocaleString()}`}
+                    formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
                     contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--glass-shadow)', background: 'var(--bg-card)', color: 'var(--text-main)'}}
                   />
                   <Legend 
@@ -294,7 +294,7 @@ export default function Dashboard({ onNewEntry }) {
                 tickFormatter={(value) => `₹${value >= 1000 ? (value/1000) + 'k' : value}`}
               />
               <Tooltip 
-                formatter={(value) => `₹${value.toLocaleString()}`}
+                formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
                 contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--glass-shadow)', background: 'var(--bg-card)', color: 'var(--text-main)'}}
               />
               <Bar dataKey="amount" fill="#8c7335" radius={[2, 2, 0, 0]} barSize={500} />
