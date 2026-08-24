@@ -509,11 +509,16 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
   const isInsuranceCategory = selectedCategory?.module === 'insurances';
   const isLoanCategory = selectedCategory?.module === 'loans';
+  const isLendingCategory = selectedCategory?.module === 'lending';
   const hasPaymentHistory = isInsuranceCategory || isLoanCategory;
   const activeRecords = searchedBaseBills.filter(b => b.status === 'Unpaid').length;
   const normalizedMonthlyTotal = searchedBaseBills.filter(b => b.status === 'Unpaid').reduce((sum, b) => sum + b.amount, 0);
   const totalPaidAllTime = hasPaymentHistory
     ? searchedBaseBills.filter(b => b.status === 'Paid').reduce((sum, b) => sum + b.amount, 0)
+    : 0;
+  
+  const expectedMonthlyInterest = isLendingCategory
+    ? searchedBaseBills.filter(b => b.status === 'Unpaid').reduce((sum, b) => sum + (b.amount * (parseFloat(b.details?.interestRate) || 0)) / 100, 0)
     : 0;
 
   return (
@@ -546,9 +551,15 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
           <div style={{fontSize: '2rem', fontWeight: '600', color: 'var(--accent-secondary)', fontFamily: 'Merriweather, serif'}}>{activeRecords}</div>
         </div>
         <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--accent-danger)', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
-          <div style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Normalized monthly total</div>
+          <div style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>{isLendingCategory ? 'Total Principal' : 'Normalized monthly total'}</div>
           <div style={{fontSize: '2rem', fontWeight: '600', color: 'var(--accent-secondary)', fontFamily: 'Merriweather, serif'}}>₹{normalizedMonthlyTotal.toLocaleString('en-IN')}</div>
         </div>
+        {isLendingCategory && (
+          <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid #f59e0b', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
+            <div style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Expected Monthly Interest</div>
+            <div style={{fontSize: '2rem', fontWeight: '600', color: '#d97706', fontFamily: 'Merriweather, serif'}}>₹{expectedMonthlyInterest.toLocaleString('en-IN', {maximumFractionDigits: 2})}</div>
+          </div>
+        )}
         {hasPaymentHistory && (
           <div className="glass-card" style={{flex: '1', minWidth: '250px', padding: '1.5rem', background: 'linear-gradient(135deg, #064e3b, #065f46)', border: '1px solid #059669', borderLeft: '4px solid #4ade80', boxShadow: 'var(--glass-shadow)', borderRadius: '8px'}}>
             <div style={{fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem'}}>Total Paid (All Time)</div>
