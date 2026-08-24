@@ -76,11 +76,11 @@ export default function Dashboard({ onNewEntry }) {
 
   // Calculate actual data instead of mock
   const monthlyIncome = unpaidExpenses
-    .filter(e => e.category.toLowerCase().includes('income') || e.category.toLowerCase().includes('interest given'))
+    .filter(e => e.category?.toLowerCase().includes('income') || e.category?.toLowerCase().includes('interest given'))
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
   const monthlyInvestment = unpaidExpenses
-    .filter(e => e.category.toLowerCase().includes('mutual funds - sip'))
+    .filter(e => e.category?.toLowerCase().includes('mutual funds - sip'))
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
   // Chart Data preparation
