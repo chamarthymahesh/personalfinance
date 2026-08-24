@@ -242,6 +242,48 @@ router.put('/:type/:id', upload.any(), async (req, res) => {
       }
     }
 
+    // Auto-sync LendingLedger if Lending/Borrowing settings are updated
+    if (req.params.type === 'expenses' && (data.category?.toLowerCase().includes('lending') || data.category?.toLowerCase().includes('interest given') || data.category?.toLowerCase().includes('borrowing') || data.category?.toLowerCase().includes('interest taken'))) {
+      const LendingLedger = require('../models/LendingLedger');
+      const ledger = await LendingLedger.findOne({ expenseId: data._id });
+      if (ledger) {
+        let changed = false;
+        
+        const newRate = parseFloat(data.details?.interestRate) || 0;
+        const newType = data.details?.interestType || 'Simple Interest';
+        const newPrincipal = parseFloat(data.amount) || 0;
+        const newName = data.details?.personName || data.title;
+        const newDate = data.dueDate ? new Date(data.dueDate) : ledger.startDate;
+
+        if (ledger.interestRate !== newRate || ledger.interestType !== newType || ledger.principalAmount !== newPrincipal || ledger.personName !== newName || ledger.startDate.getTime() !== newDate.getTime()) {
+          ledger.interestRate = newRate;
+          ledger.interestType = newType;
+          ledger.principalAmount = newPrincipal;
+          ledger.personName = newName;
+          ledger.startDate = newDate;
+
+          // Update opening entry
+          const openingEntry = ledger.entries.find(e => e.type === 'opening');
+          if (openingEntry) {
+            openingEntry.amount = newPrincipal;
+            openingEntry.date = newDate;
+          }
+          
+          changed = true;
+        }
+
+        if (changed) {
+          // Trigger recalculation of auto-generated interest
+          const lendingRouter = require('./lending');
+          if (lendingRouter.recalculateLedgerInterest) {
+            await lendingRouter.recalculateLedgerInterest(ledger);
+          } else {
+            await ledger.save();
+          }
+        }
+      }
+    }
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

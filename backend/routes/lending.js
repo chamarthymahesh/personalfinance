@@ -361,5 +361,72 @@ router.delete('/:id/entry/:entryId', async (req, res) => {
   }
 });
 
+async function recalculateLedgerInterest(ledger) {
+  // Remove all auto-generated interest entries, keep opening + manual interest + payments
+  ledger.entries = ledger.entries.filter(e =>
+    e.type !== 'interest' || !e.note?.includes('Auto-generated')
+  );
+
+  let newEntriesCount = 0;
+  let currentStart = new Date(ledger.startDate);
+  const today = new Date();
+
+  while (currentStart < today) {
+    let nextFirst = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 1);
+    let periodEnd = nextFirst;
+    
+    if (periodEnd > today) {
+      periodEnd = new Date(today);
+    }
+    
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const startDay = new Date(currentStart.getFullYear(), currentStart.getMonth(), currentStart.getDate());
+    const endDay = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), periodEnd.getDate());
+    const daysElapsed = Math.round((endDay - startDay) / msPerDay);
+    
+    if (daysElapsed > 0) {
+      const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
+      
+      const isCompound = ledger.interestType === 'Compound Interest';
+      const basisAmount = isCompound
+        ? getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1))
+        : getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+      const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
+      const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
+      
+      const monthLabel = currentStart.toLocaleString('default', { month: 'short', year: 'numeric' });
+      
+      ledger.entries.push({
+        type: 'interest',
+        date: periodEnd,
+        amount: interestAmount,
+        balanceAfter: 0,
+        note: `Auto-generated Interest @ ${ledger.interestRate}%`,
+        monthLabel: monthLabel
+      });
+      
+      newEntriesCount++;
+    }
+    
+    currentStart = nextFirst;
+  }
+
+  // Recalculate all balances chronologically
+  ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+  let runningBalance = 0;
+  for (let i = 0; i < ledger.entries.length; i++) {
+    const e = ledger.entries[i];
+    if (e.type === 'opening') runningBalance = e.amount;
+    else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
+    else if (e.type === 'partial_payment') runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
+    e.balanceAfter = runningBalance;
+  }
+  
+  ledger.outstandingBalance = runningBalance;
+  await ledger.save();
+  return ledger;
+}
+
+router.recalculateLedgerInterest = recalculateLedgerInterest;
 module.exports = router;
 
