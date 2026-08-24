@@ -495,7 +495,15 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const filteredBills = selectedCategory ? bills.filter(b => b.category === selectedCategory.name) : bills;
   const displayBills = showClosed ? filteredBills : filteredBills.filter(b => b.status === 'Unpaid');
   const searchFilteredBills = searchQuery.trim() !== ''
-    ? displayBills.filter(b => b.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? displayBills.filter(b => {
+        const q = searchQuery.toLowerCase();
+        if (b.title?.toLowerCase().includes(q)) return true;
+        if (b.category?.toLowerCase().includes(q)) return true;
+        if (b.details) {
+          return Object.values(b.details).some(val => String(val).toLowerCase().includes(q));
+        }
+        return false;
+      })
     : displayBills;
 
   const isInsuranceCategory = selectedCategory?.module === 'insurances';
