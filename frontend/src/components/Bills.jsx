@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Edit2, Check, X, History, IndianRupee } from 'lucide-react';
 import LendingLedgerModal from './LendingLedgerModal';
 import InvestmentLedgerModal from './InvestmentLedgerModal';
+import ExpenseLedgerModal from './ExpenseLedgerModal';
 import { API_URL, SERVER_URL } from '../config';
 
 
@@ -14,6 +15,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const [showClosed, setShowClosed] = useState(false);
   const [lendingLedgerBill, setLendingLedgerBill] = useState(null);
   const [investmentLedgerBill, setInvestmentLedgerBill] = useState(null);
+  const [expenseLedgerBill, setExpenseLedgerBill] = useState(null);
 
   // --- Payment History Modal State ---
   const [historyModalBill, setHistoryModalBill] = useState(null);
@@ -715,16 +717,25 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                         📈 View Ledger
                       </button>
                     ) : (
-                      <button onClick={() => openPaymentModal(bill)} style={{
-                        background: 'transparent', border: '1px solid var(--accent-success)',
-                        color: 'var(--accent-success)', padding: '0.5rem 1rem', borderRadius: '6px',
-                        fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent-success)'; e.currentTarget.style.color = 'white'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent-success)'; }}
-                      >
-                        Pay Now
-                      </button>
+                      <>
+                        <button onClick={() => setExpenseLedgerBill(bill)} style={{
+                          background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.4)',
+                          color: '#10b981', padding: '0.5rem 1rem', borderRadius: '6px',
+                          fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem'
+                        }}>
+                          📒 View Ledger
+                        </button>
+                        <button onClick={() => openPaymentModal(bill)} style={{
+                          background: 'transparent', border: '1px solid var(--accent-success)',
+                          color: 'var(--accent-success)', padding: '0.5rem 1rem', borderRadius: '6px',
+                          fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent-success)'; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent-success)'; }}
+                        >
+                          Pay Now
+                        </button>
+                      </>
                     )}
                   </>
               ) : (
@@ -1118,6 +1129,14 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         <InvestmentLedgerModal 
           bill={investmentLedgerBill} 
           onClose={() => setInvestmentLedgerBill(null)} 
+        />
+      )}
+
+      {/* EXPENSE LEDGER MODAL (INTERNET, RENT, ETC) */}
+      {expenseLedgerBill && (
+        <ExpenseLedgerModal 
+          bill={expenseLedgerBill} 
+          onClose={() => setExpenseLedgerBill(null)} 
         />
       )}
 
