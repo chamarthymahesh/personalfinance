@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Plus, TrendingDown, TrendingUp, Trash2, Zap } from 'lucide-react';
+import { X, Plus, TrendingDown, TrendingUp, Trash2, Zap, Paperclip } from 'lucide-react';
 import { SERVER_URL } from '../config';
 
 export default function InvestmentLedgerModal({ bill, onClose }) {
@@ -12,7 +12,8 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
     amount: '',
     date: new Date().toISOString().split('T')[0],
     paymentMode: 'Bank Transfer',
-    note: ''
+    note: '',
+    proofFile: null
   });
 
   const fetchLedger = async () => {
@@ -57,7 +58,13 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
     try {
       const token = localStorage.getItem('token');
       const form = new FormData();
-      Object.entries(formData).forEach(([k, v]) => form.append(k, v));
+      Object.entries(formData).forEach(([k, v]) => {
+        if (k === 'proofFile') {
+          if (v) form.append('proofFile', v);
+        } else {
+          form.append(k, v);
+        }
+      });
       
       await axios.post(`${SERVER_URL}/api/v1/investment-ledger/${ledger._id}/entry`, form, {
         headers: { 
@@ -72,7 +79,8 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
         amount: '',
         date: new Date().toISOString().split('T')[0],
         paymentMode: 'Bank Transfer',
-        note: ''
+        note: '',
+        proofFile: null
       });
       fetchLedger();
     } catch (err) {
@@ -276,6 +284,24 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
                     />
                   </div>
 
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Paperclip size={14} /> Payment Proof (PDF / Screenshot)
+                    </label>
+                    <input 
+                      type="file" 
+                      accept="image/*,application/pdf"
+                      className="form-input"
+                      style={{ padding: '0.4rem' }}
+                      onChange={(e) => setFormData({...formData, proofFile: e.target.files[0] || null})}
+                    />
+                    {formData.proofFile && (
+                      <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        📎 {formData.proofFile.name}
+                      </p>
+                    )}
+                  </div>
+
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                     <button type="button" onClick={() => setShowAddForm(false)} style={{
                       padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--border-color)',
@@ -303,6 +329,7 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Amount</th>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Balance</th>
                         <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Note</th>
+                        <th style={{ padding: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Proof</th>
                         <th style={{ padding: '0.75rem', width: '40px' }}></th>
                       </tr>
                     </thead>
@@ -331,6 +358,21 @@ export default function InvestmentLedgerModal({ bill, onClose }) {
                           </td>
                           <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
                             {entry.note || '-'}
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            {entry.proofUrl ? (
+                              <a
+                                href={`${SERVER_URL}${entry.proofUrl}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="View payment proof"
+                                style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', textDecoration: 'none' }}
+                              >
+                                <Paperclip size={14} /> View
+                              </a>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>
+                            )}
                           </td>
                           <td style={{ padding: '0.75rem' }}>
                             <button onClick={() => handleDelete(entry._id)} style={{

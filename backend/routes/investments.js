@@ -75,6 +75,7 @@ router.post('/:id/entry', upload.single('proofFile'), async (req, res) => {
 
     const { type, amount, date, note, paymentMode } = req.body;
     const numAmount = Number(amount);
+    const proofUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
     let totalInvestedAfter = ledger.totalInvested;
     if (type === 'invest') {
@@ -89,6 +90,7 @@ router.post('/:id/entry', upload.single('proofFile'), async (req, res) => {
       date: date ? new Date(date) : new Date(),
       note,
       paymentMode,
+      proofUrl,
       totalInvestedAfter
     };
 

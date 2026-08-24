@@ -26,6 +26,10 @@ const InvestmentEntrySchema = new mongoose.Schema({
   paymentMode: {
     type: String,
     default: ''
+  },
+  proofUrl: {
+    type: String,
+    default: ''
   }
 });
 
