@@ -13,6 +13,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const [uniqueBillersByCategory, setUniqueBillersByCategory] = useState({});
   const [isNewBiller, setIsNewBiller] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [lendingLedgerBill, setLendingLedgerBill] = useState(null);
   const [investmentLedgerBill, setInvestmentLedgerBill] = useState(null);
   const [expenseLedgerBill, setExpenseLedgerBill] = useState(null);
@@ -493,6 +494,9 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const categoryModule = selectedCategory ? selectedCategory.module : '';
   const filteredBills = selectedCategory ? bills.filter(b => b.category === selectedCategory.name) : bills;
   const displayBills = showClosed ? filteredBills : filteredBills.filter(b => b.status === 'Unpaid');
+  const searchFilteredBills = searchQuery.trim() !== ''
+    ? displayBills.filter(b => b.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : displayBills;
 
   const isInsuranceCategory = selectedCategory?.module === 'insurances';
   const isLoanCategory = selectedCategory?.module === 'loans';
@@ -543,27 +547,39 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
             <div style={{fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.4rem'}}>{filteredBills.filter(b => b.status === 'Paid').length} instalment(s) recorded</div>
           </div>
         )}
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', padding: '1rem'}}>
-          <input 
-            type="checkbox" 
-            id="showClosed" 
-            checked={showClosed}
-            onChange={(e) => setShowClosed(e.target.checked)}
-            style={{width: '16px', height: '16px', accentColor: 'var(--accent-secondary)'}}
-          />
-          <label htmlFor="showClosed" style={{fontSize: '0.875rem', color: 'var(--text-muted)', cursor: 'pointer'}}>Show closed / one-time settled</label>
+        <div style={{display: 'flex', alignItems: 'center', gap: '1.5rem', marginLeft: 'auto', padding: '1rem'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.4rem 0.8rem'}}>
+             <span style={{color: 'var(--text-muted)'}}>🔍</span>
+             <input 
+               type="text" 
+               placeholder="Filter by name..." 
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               style={{border: 'none', outline: 'none', background: 'transparent', fontSize: '0.9rem', color: 'var(--text-main)', width: '180px'}}
+             />
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+            <input 
+              type="checkbox" 
+              id="showClosed" 
+              checked={showClosed}
+              onChange={(e) => setShowClosed(e.target.checked)}
+              style={{width: '16px', height: '16px', accentColor: 'var(--accent-secondary)'}}
+            />
+            <label htmlFor="showClosed" style={{fontSize: '0.875rem', color: 'var(--text-muted)', cursor: 'pointer'}}>Show closed / one-time settled</label>
+          </div>
         </div>
       </div>
       
       {/* MODERN LIST VIEW */}
       <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-        {displayBills.length === 0 && (
+        {searchFilteredBills.length === 0 && (
           <div className="glass-card" style={{textAlign: 'center', padding: '4rem 2rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: 'var(--glass-shadow)'}}>
             <p style={{color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic'}}>No {categoryName.toLowerCase()} records yet. Add the first one.</p>
           </div>
         )}
 
-        {displayBills.map(bill => (
+        {searchFilteredBills.map(bill => (
           <div key={bill._id} className="glass-card" style={{
             display: 'flex', alignItems: 'center', padding: '1.5rem', 
             transition: 'transform 0.2s, background 0.2s', cursor: 'default',
