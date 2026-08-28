@@ -963,12 +963,13 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                 </div>
               </div>
 
-              {/* ---- Next due date ---- */}
+              {/* ---- Next due date / Date of Payment ---- */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                     {formData.category?.toLowerCase().includes('interest given') ? 'Amount Lent Date' :
                      formData.category?.toLowerCase().includes('interest taken') ? 'Amount Taken Date' :
+                     formData.category?.toLowerCase().includes('other') ? 'Date of Payment' :
                      'Next due date'}
                   </label>
                   <input
