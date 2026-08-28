@@ -364,25 +364,38 @@ router.post('/:id/add-payment', upload.single('proofFile'), async (req, res) => 
 
     const { amount, date, note, paymentMode } = req.body;
     const paymentAmt = parseFloat(amount);
-    const newBalance = parseFloat((ledger.outstandingBalance - paymentAmt).toFixed(2));
-
-    if (newBalance < 0) {
-      return res.status(400).json({ error: 'Payment exceeds outstanding balance' });
-    }
 
     const proofUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
+    // Push the new payment entry (balanceAfter will be recalculated below)
     ledger.entries.push({
       type: 'partial_payment',
       date: date || new Date(),
       amount: paymentAmt,
-      balanceAfter: newBalance,
+      balanceAfter: 0,
       note: note || 'Partial payment received',
       paymentMode: paymentMode || '',
       proofUrl: proofUrl
     });
 
-    ledger.outstandingBalance = newBalance;
+    // Sort all entries chronologically and recalculate running balances from scratch
+    // This correctly handles backdated payments (e.g. a payment dated in the past)
+    ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+    let runningBalance = 0;
+    for (let i = 0; i < ledger.entries.length; i++) {
+      const e = ledger.entries[i];
+      if (e.type === 'opening') runningBalance = e.amount;
+      else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
+      else if (e.type === 'partial_payment') {
+        runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
+        if (runningBalance < 0) {
+          return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
+        }
+      }
+      e.balanceAfter = runningBalance;
+    }
+
+    ledger.outstandingBalance = runningBalance;
     await ledger.save();
     res.json(ledger);
   } catch (err) {
