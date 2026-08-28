@@ -627,15 +627,34 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               <h3 style={{fontSize: '1.15rem', fontWeight: '600', marginBottom: '0.25rem', letterSpacing: '0.5px'}}>{bill.title}</h3>
               <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center'}}>
                 <span style={{fontSize: '0.85rem', color: 'var(--text-muted)'}}>{bill.category} &bull; {bill.frequency}</span>
-                {bill.details && Object.entries(bill.details).map(([k,v]) => (
-                  <span key={k} style={{
-                    fontSize: '0.75rem', background: 'var(--bg-main)', 
-                    border: '1px solid var(--border-color)',
-                    padding: '0.15rem 0.5rem', borderRadius: '12px', color: 'var(--text-muted)'
-                  }}>
-                    {v}
-                  </span>
-                ))}
+                {bill.details && Object.entries(bill.details).map(([k, v]) => {
+                  if (!v && v !== 0) return null;
+                  // Convert camelCase key to readable label
+                  const label = k
+                    .replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, s => s.toUpperCase())
+                    .trim();
+                  // Format date values (ISO strings like 2012-03-28 or full ISO)
+                  let displayVal = v;
+                  const dateTest = String(v).match(/^\d{4}-\d{2}-\d{2}/);
+                  if (dateTest) {
+                    const d = new Date(v);
+                    if (!isNaN(d)) {
+                      displayVal = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                    }
+                  }
+                  return (
+                    <span key={k} style={{
+                      fontSize: '0.75rem', background: 'var(--bg-main)',
+                      border: '1px solid var(--border-color)',
+                      padding: '0.2rem 0.6rem', borderRadius: '12px',
+                      color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
+                    }}>
+                      <span style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.72rem' }}>{label}:</span>
+                      <span>{displayVal}</span>
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
