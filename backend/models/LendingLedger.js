@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const LedgerEntrySchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['interest', 'partial_payment', 'opening'],
+    enum: ['interest', 'partial_payment', 'opening', 'principal_addition'],
     required: true
   },
   date: {
