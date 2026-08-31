@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const LedgerEntrySchema = new mongoose.Schema({
+const HandLoanLedgerEntrySchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['interest', 'partial_payment', 'opening'],
+    enum: ['opening', 'given', 'received'],
     required: true
   },
   date: {
@@ -31,14 +31,10 @@ const LedgerEntrySchema = new mongoose.Schema({
   proofUrl: {
     type: String,
     default: ''
-  },
-  monthLabel: {
-    type: String,
-    default: ''
   }
 });
 
-const LendingLedgerSchema = new mongoose.Schema({
+const HandLoanLedgerSchema = new mongoose.Schema({
   expenseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Expense',
@@ -48,30 +44,16 @@ const LendingLedgerSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  principalAmount: {
-    type: Number,
-    required: true
-  },
-  interestRate: {
-    type: Number,
-    required: true,
-    default: 0
-  },
-  interestType: {
-    type: String,
-    enum: ['Simple Interest', 'Compound Interest', 'Yearly Compound Interest'],
-    default: 'Simple Interest'
-  },
   startDate: {
     type: Date,
     required: true,
     default: Date.now
   },
-  outstandingBalance: {
+  currentBalance: {
     type: Number,
     required: true
   },
-  entries: [LedgerEntrySchema]
+  entries: [HandLoanLedgerEntrySchema]
 }, { timestamps: true });
 
-module.exports = mongoose.model('LendingLedger', LendingLedgerSchema);
+module.exports = mongoose.model('HandLoanLedger', HandLoanLedgerSchema);

@@ -97,7 +97,8 @@ const groupedCategories = useMemo(() => {
     properties: 'PROPERTY & FAMILY',
     credit_cards: 'CREDIT CARDS',
     other: 'OTHER',
-    lending: 'LENDING & BORROWING'
+    lending: 'LENDING & BORROWING',
+    hand_loans: 'HAND LOANS'
   };
 
   const getSidebarIcon = (categoryName) => {
@@ -119,6 +120,7 @@ const groupedCategories = useMemo(() => {
     if (name.includes('fund') || name.includes('investment')) return <TrendingUp size={18} />;
     if (name.includes('property')) return <Building2 size={18} />;
     if (name.includes('interest')) return <HandCoins size={18} />;
+    if (name.includes('hand loan')) return <HandCoins size={18} />;
     if (name.includes('chit')) return <PiggyBank size={18} />;
     if (name.includes('other')) return <MoreHorizontal size={18} />;
     return <Receipt size={18} />;
@@ -247,7 +249,7 @@ const groupedCategories = useMemo(() => {
 
         {/* Dynamic Category Sections — scrollable area */}
         <div style={{flex: 1, overflowY: 'auto'}}>
-          {['expenses', 'credit_cards', 'investments', 'insurances', 'lending', 'loans', 'properties', 'other'].map(mod => {
+          {['expenses', 'credit_cards', 'investments', 'insurances', 'lending', 'hand_loans', 'loans', 'properties', 'other'].map(mod => {
             const cats = groupedCategories[mod];
             if (!cats || cats.length === 0) return null;
             return (

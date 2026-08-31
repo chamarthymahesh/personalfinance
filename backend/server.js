@@ -54,19 +54,7 @@ const app = express();
 app.use(express.json());
 
 // Enable CORS
-const allowedOrigins = [
-  'https://personal.apnakartz.com',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000'
-];
-
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-  credentials: true
-}));
+app.use(cors());
 
 // Serve static uploads (ensure uploads directory exists)
 const fs = require('fs');
@@ -81,11 +69,13 @@ const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
 const lendingRoutes = require('./routes/lending');
 const investmentsRoutes = require('./routes/investments');
+const handLoansRoutes = require('./routes/hand_loans');
 
 // Mount routers
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/lending-ledger', lendingRoutes);
 app.use('/api/v1/investment-ledger', investmentsRoutes);
+app.use('/api/v1/hand-loans-ledger', handLoansRoutes);
 app.use('/api/v1', apiRoutes);
 
 const PORT = process.env.PORT || 5000;

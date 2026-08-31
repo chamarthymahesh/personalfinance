@@ -97,7 +97,6 @@ function getBalanceAt(entries, atDate) {
     if (e.type === 'opening') balance = e.amount;
     else if (e.type === 'interest') balance = parseFloat((balance + e.amount).toFixed(2));
     else if (e.type === 'partial_payment') balance = parseFloat((balance - e.amount).toFixed(2));
-        else if (e.type === 'principal_addition') balance = parseFloat((balance + e.amount).toFixed(2));
   }
   return balance;
 }
@@ -116,10 +115,6 @@ function getPrincipalAt(entries, atDate) {
     } else if (e.type === 'interest') {
       unpaidInterest = parseFloat((unpaidInterest + e.amount).toFixed(2));
     } else if (e.type === 'partial_payment') {
-        // existing logic
-      } else if (e.type === 'principal_addition') {
-        principal = parseFloat((principal + e.amount).toFixed(2));
-      }
       // Payment clears interest first, then reduces principal
       let remainingPayment = e.amount;
       
@@ -268,7 +263,6 @@ router.post('/:id/sync-interest', async (req, res) => {
       if (e.type === 'opening') runningBalance = e.amount;
       else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       else if (e.type === 'partial_payment') runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-        else if (e.type === 'principal_addition') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       e.balanceAfter = runningBalance;
     }
     
@@ -349,7 +343,6 @@ router.post('/:id/recalculate-interest', async (req, res) => {
       if (e.type === 'opening') runningBalance = e.amount;
       else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       else if (e.type === 'partial_payment') runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-        else if (e.type === 'principal_addition') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       e.balanceAfter = runningBalance;
     }
     
@@ -394,121 +387,6 @@ router.post('/:id/add-payment', upload.single('proofFile'), async (req, res) => 
       if (e.type === 'opening') runningBalance = e.amount;
       else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       else if (e.type === 'partial_payment') {
-        runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-        if (runningBalance < 0) {
-          return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
-        }
-      } else if (e.type === 'principal_addition') {
-        runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-      }
-      e.balanceAfter = runningBalance;
-    }
-
-    ledger.outstandingBalance = runningBalance;
-    await ledger.save();
-    res.json(ledger);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Add principal addition
-router.post('/:id/add-principal', upload.single('proofFile'), async (req, res) => {
-  try {
-    const ledger = await LendingLedger.findById(req.params.id);
-    if (!ledger) return res.status(404).json({ error: 'Ledger not found' });
-
-    const { amount, date, note, paymentMode } = req.body;
-    const principalAmt = parseFloat(amount);
-    const proofUrl = req.file ? `/uploads/${req.file.filename}` : '';
-
-    ledger.entries.push({
-      type: 'principal_addition',
-      date: date || new Date(),
-      amount: principalAmt,
-      balanceAfter: 0,
-      note: note || 'Principal addition',
-      paymentMode: paymentMode || '',
-      proofUrl: proofUrl
-    });
-
-    // Re-sort and recalc balances
-    ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
-    let runningBalance = 0;
-    for (let i = 0; i < ledger.entries.length; i++) {
-      const e = ledger.entries[i];
-      if (e.type === 'opening') runningBalance = e.amount;
-      else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-      else if (e.type === 'partial_payment') {
-        runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-        if (runningBalance < 0) {
-          return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
-        }
-      } else if (e.type === 'principal_addition') {
-        runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-      }
-      e.balanceAfter = runningBalance;
-    }
-
-    ledger.outstandingBalance = runningBalance;
-    await ledger.save();
-    res.json(ledger);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-router.post('/:id/add-payment', upload.single('proofFile'), async (req, res) => {
-  try {
-    const ledger = await LendingLedger.findById(req.params.id);
-    if (!ledger) return res.status(404).json({ error: 'Ledger not found' });
-
-    const { amount, date, note, paymentMode } = req.body;
-    const paymentAmt = parseFloat(amount);
-
-    const proofUrl = req.file ? `/uploads/${req.file.filename}` : '';
-
-    // Push the new payment entry (balanceAfter will be recalculated below)
-    ledger.entries.push({
-      type: 'partial_payment',
-      date: date || new Date(),
-      amount: paymentAmt,
-      balanceAfter: 0,
-      note: note || 'Partial payment received',
-      paymentMode: paymentMode || '',
-      proofUrl: proofUrl
-    });
-
-    // Sort all entries chronologically and recalculate running balances from scratch
-    // This correctly handles backdated payments (e.g. a payment dated in the past)
-    ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
-    let runningBalance = 0;
-for (let i = 0; i < ledger.entries.length; i++) {
-  const e = ledger.entries[i];
-  if (e.type === 'opening') {
-    runningBalance = e.amount;
-  } else if (e.type === 'interest') {
-    runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-  } else if (e.type === 'principal_addition') {
-    runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-  } else if (e.type === 'partial_payment') {
-    runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-    if (runningBalance < 0) {
-      return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
-    }
-  }
-  e.balanceAfter = runningBalance;
-}
-      const e = ledger.entries[i];
-      if (e.type === 'opening') runningBalance = e.amount;
-      else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-      else if (e.type === 'partial_payment') {
-          runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-          if (runningBalance < 0) {
-            return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
-          }
-        } else if (e.type === 'principal_addition') {
-          runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-        }
         runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
         if (runningBalance < 0) {
           return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });

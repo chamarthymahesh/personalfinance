@@ -4,6 +4,7 @@ import { Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Edit2,
 import LendingLedgerModal from './LendingLedgerModal';
 import InvestmentLedgerModal from './InvestmentLedgerModal';
 import ExpenseLedgerModal from './ExpenseLedgerModal';
+import HandLoanLedgerModal from './HandLoanLedgerModal';
 import { API_URL, SERVER_URL } from '../config';
 
 
@@ -17,6 +18,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const [lendingLedgerBill, setLendingLedgerBill] = useState(null);
   const [investmentLedgerBill, setInvestmentLedgerBill] = useState(null);
   const [expenseLedgerBill, setExpenseLedgerBill] = useState(null);
+  const [handLoanLedgerBill, setHandLoanLedgerBill] = useState(null);
 
   // --- Payment History Modal State ---
   const [historyModalBill, setHistoryModalBill] = useState(null);
@@ -767,6 +769,14 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                       }}>
                         📒 View Ledger
                       </button>
+                    ) : bill.category?.toLowerCase().includes('hand loan') ? (
+                      <button onClick={() => setHandLoanLedgerBill(bill)} style={{
+                        background: '#e0f2fe', border: '1px solid #38bdf8',
+                        color: '#0369a1', padding: '0.5rem 1rem', borderRadius: '6px',
+                        fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem'
+                      }}>
+                        📒 View Hand Loan
+                      </button>
                     ) : bill.category?.toLowerCase().includes('mutual funds') ? (
                       <button onClick={() => setInvestmentLedgerBill(bill)} style={{
                         background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.4)',
@@ -1474,6 +1484,15 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         </div>
       )}
 
+      {handLoanLedgerBill && (
+        <HandLoanLedgerModal 
+          bill={handLoanLedgerBill} 
+          onClose={() => {
+            setHandLoanLedgerBill(null);
+            fetchBills();
+          }} 
+        />
+      )}
     </div>
   );
 }
