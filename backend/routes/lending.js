@@ -125,6 +125,8 @@ function getPrincipalAt(entries, atDate) {
       } else {
         unpaidInterest = parseFloat((unpaidInterest - remainingPayment).toFixed(2));
       }
+    } else if (e.type === 'principal_addition') {
+      principal = parseFloat((principal + e.amount).toFixed(2));
     }
   }
   return principal;
@@ -391,6 +393,54 @@ router.post('/:id/add-payment', upload.single('proofFile'), async (req, res) => 
         if (runningBalance < 0) {
           return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
         }
+      } else if (e.type === 'principal_addition') {
+        runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
+      }
+      e.balanceAfter = runningBalance;
+    }
+
+    ledger.outstandingBalance = runningBalance;
+    await ledger.save();
+    res.json(ledger);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add principal addition
+router.post('/:id/add-principal', upload.single('proofFile'), async (req, res) => {
+  try {
+    const ledger = await LendingLedger.findById(req.params.id);
+    if (!ledger) return res.status(404).json({ error: 'Ledger not found' });
+
+    const { amount, date, note, paymentMode } = req.body;
+    const principalAmt = parseFloat(amount);
+    const proofUrl = req.file ? `/uploads/${req.file.filename}` : '';
+
+    ledger.entries.push({
+      type: 'principal_addition',
+      date: date || new Date(),
+      amount: principalAmt,
+      balanceAfter: 0,
+      note: note || 'Principal addition',
+      paymentMode: paymentMode || '',
+      proofUrl: proofUrl
+    });
+
+    // Re-sort and recalc balances
+    ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+    let runningBalance = 0;
+    for (let i = 0; i < ledger.entries.length; i++) {
+      const e = ledger.entries[i];
+      if (e.type === 'opening') runningBalance = e.amount;
+      else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
+      else if (e.type === 'partial_payment') {
+        runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
+        if (runningBalance < 0) {
+          return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
+        }
+      } else if (e.type === 'principal_addition') {
+        runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       }
       e.balanceAfter = runningBalance;
     }
