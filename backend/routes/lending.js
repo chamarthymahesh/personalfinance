@@ -116,10 +116,6 @@ function getPrincipalAt(entries, atDate) {
     } else if (e.type === 'interest') {
       unpaidInterest = parseFloat((unpaidInterest + e.amount).toFixed(2));
     } else if (e.type === 'partial_payment') {
-        // existing logic
-      } else if (e.type === 'principal_addition') {
-        principal = parseFloat((principal + e.amount).toFixed(2));
-      }
       // Payment clears interest first, then reduces principal
       let remainingPayment = e.amount;
       
@@ -130,6 +126,8 @@ function getPrincipalAt(entries, atDate) {
       } else {
         unpaidInterest = parseFloat((unpaidInterest - remainingPayment).toFixed(2));
       }
+    } else if (e.type === 'principal_addition') {
+      principal = parseFloat((principal + e.amount).toFixed(2));
     }
   }
   return principal;
@@ -482,33 +480,15 @@ router.post('/:id/add-payment', upload.single('proofFile'), async (req, res) => 
     // This correctly handles backdated payments (e.g. a payment dated in the past)
     ledger.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
     let runningBalance = 0;
-for (let i = 0; i < ledger.entries.length; i++) {
-  const e = ledger.entries[i];
-  if (e.type === 'opening') {
-    runningBalance = e.amount;
-  } else if (e.type === 'interest') {
-    runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-  } else if (e.type === 'principal_addition') {
-    runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-  } else if (e.type === 'partial_payment') {
-    runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-    if (runningBalance < 0) {
-      return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
-    }
-  }
-  e.balanceAfter = runningBalance;
-}
+    for (let i = 0; i < ledger.entries.length; i++) {
       const e = ledger.entries[i];
-      if (e.type === 'opening') runningBalance = e.amount;
-      else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-      else if (e.type === 'partial_payment') {
-          runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-          if (runningBalance < 0) {
-            return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
-          }
-        } else if (e.type === 'principal_addition') {
-          runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
-        }
+      if (e.type === 'opening') {
+        runningBalance = e.amount;
+      } else if (e.type === 'interest') {
+        runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
+      } else if (e.type === 'principal_addition') {
+        runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
+      } else if (e.type === 'partial_payment') {
         runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
         if (runningBalance < 0) {
           return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
