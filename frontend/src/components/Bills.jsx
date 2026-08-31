@@ -192,6 +192,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const isHandLoan = formData.category?.toLowerCase().includes('hand loan');
+
       let autoTitle = formData.category;
       if (formData.details && Object.keys(formData.details).length > 0) {
          const firstKey = Object.keys(formData.details)[0];
@@ -201,6 +203,12 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       }
       if (formData.title && formData.title !== formData.category) {
          autoTitle = formData.title;
+      }
+
+      // For hand loans: set amount=0 and frequency=One-time automatically
+      if (isHandLoan) {
+        formData.amount = formData.amount || '0';
+        formData.frequency = 'One-time';
       }
 
       const hasFiles = Object.values(formData.details).some(val => val instanceof File) || !!formData.paymentProofFile;
@@ -241,6 +249,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         await axios.post(`${API_URL}/expenses`, requestData, requestConfig);
       }
 
+      const savedCategory = formData.category;
       setFormData({
         title: '', category: selectedCategory ? selectedCategory.name : (categories[0]?.name || ''), amount: '', frequency: 'Monthly', dueDate: '', remarks: '', details: {}, paymentProofFile: null
       });
@@ -248,7 +257,21 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       setIsDrawerOpen(false);
       setIsDrawerEditMode(false);
       setEditingBillId(null);
-      fetchBills();
+      await fetchBills();
+
+      // For hand loans: auto-open the ledger right after creating the entry
+      if (isHandLoan && !isDrawerEditMode) {
+        // Small delay to let fetchBills update state
+        setTimeout(async () => {
+          try {
+            const fresh = await axios.get(`${API_URL}/expenses`);
+            const all = fresh.data;
+            // Find the newly created entry (last one with this category matching personName)
+            const match = [...all].reverse().find(b => b.category === savedCategory && b.details?.personName === autoTitle);
+            if (match) setHandLoanLedgerBill(match);
+          } catch {}
+        }, 300);
+      }
     } catch (err) {
       console.error(err);
       alert("Error saving entry: " + (err.response?.data?.error || err.message));
@@ -494,6 +517,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
   const categoryName = selectedCategory ? selectedCategory.name : 'Bills & Expenses';
   const categoryModule = selectedCategory ? selectedCategory.module : '';
+  const isHandLoanCategory = selectedCategory?.module === 'hand_loans' || formData.category?.toLowerCase().includes('hand loan');
   const filteredBills = selectedCategory ? bills.filter(b => b.category === selectedCategory.name) : bills;
   const searchedBaseBills = searchQuery.trim() !== ''
     ? filteredBills.filter(b => {
@@ -662,7 +686,11 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
             {/* 3. Due Date & Payment Info */}
             <div style={{flex: 1, minWidth: '150px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
-              {bill.status === 'Unpaid' ? (
+              {bill.category?.toLowerCase().includes('hand loan') ? (
+                <div style={{ fontSize: '0.8rem', color: '#0369a1', background: '#e0f2fe', border: '1px solid #38bdf8', borderRadius: '8px', padding: '0.4rem 0.75rem', textAlign: 'center' }}>
+                  📒 Ledger tracks all transactions
+                </div>
+              ) : bill.status === 'Unpaid' ? (
                 <>
                   <div style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem'}}>Due Date</div>
                   <div style={{fontWeight: '500'}}>{bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : 'N/A'}</div>
@@ -699,12 +727,20 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
             {/* 4. Amount */}
             <div style={{textAlign: 'right', minWidth: '120px'}}>
-              <div style={{fontSize: '1.4rem', fontWeight: '700', color: bill.status === 'Paid' ? 'var(--text-main)' : 'var(--accent-danger)'}}>
-                ₹{bill.amount.toLocaleString('en-IN')}
-              </div>
-              <span className={`badge ${bill.status === 'Paid' ? 'badge-success' : 'badge-danger'}`} style={{marginTop: '0.5rem', display: 'inline-block'}}>
-                {bill.status}
-              </span>
+              {bill.category?.toLowerCase().includes('hand loan') ? (
+                <span style={{ fontSize: '0.82rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #38bdf8', borderRadius: '12px', padding: '0.3rem 0.8rem', fontWeight: '600', display: 'inline-block' }}>
+                  ✋ Hand Loan
+                </span>
+              ) : (
+                <>
+                  <div style={{fontSize: '1.4rem', fontWeight: '700', color: bill.status === 'Paid' ? 'var(--text-main)' : 'var(--accent-danger)'}}>
+                    ₹{bill.amount.toLocaleString('en-IN')}
+                  </div>
+                  <span className={`badge ${bill.status === 'Paid' ? 'badge-success' : 'badge-danger'}`} style={{marginTop: '0.5rem', display: 'inline-block'}}>
+                    {bill.status}
+                  </span>
+                </>
+              )}
             </div>
 
             {/* 5. Actions */}
@@ -890,12 +926,19 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
             {/* Form Body */}
             <form onSubmit={handleSubmit} style={{ padding: '2rem' }}>
 
+              {/* ---- Hand Loan simplified notice ---- */}
+              {isHandLoanCategory && (
+                <div style={{ marginBottom: '1.25rem', padding: '0.85rem 1rem', background: '#e0f2fe', border: '1px solid #38bdf8', borderRadius: '8px', fontSize: '0.85rem', color: '#0369a1' }}>
+                  💡 One entry per person. After saving, you can log multiple give/receive amounts on different dates from the ledger.
+                </div>
+              )}
+
               {/* ---- Category (grouped select) ---- */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Category</label>
                 {(() => {
                   // Group categories by module
-                  const moduleLabel = { expenses: 'Fixed bills', insurances: 'Insurance', investments: 'Investments', loans: 'Loans', properties: 'Property & family', lending: 'Lending & borrowing', other: 'Other' };
+                  const moduleLabel = { expenses: 'Fixed bills', insurances: 'Insurance', investments: 'Investments', loans: 'Loans', properties: 'Property & family', lending: 'Lending & borrowing', hand_loans: 'Hand Loans', other: 'Other' };
                   const grouped = categories.reduce((acc, cat) => {
                     const m = cat.module || 'expenses';
                     if (!acc[m]) acc[m] = [];
@@ -963,40 +1006,43 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                 ));
               })()}
 
-              {/* ---- Amount + Frequency ---- */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Amount (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 12000"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'white', fontSize: '0.95rem', color: '#1e293b' }}
-                  />
+              {/* ---- Amount + Frequency (hidden for hand loans) ---- */}
+              {!isHandLoanCategory && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Amount (₹)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 12000"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'white', fontSize: '0.95rem', color: '#1e293b' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Frequency</label>
+                    <select
+                      value={formData.frequency}
+                      onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+                      style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'white', fontSize: '0.95rem', color: '#1e293b' }}
+                    >
+                      <option>Monthly</option>
+                      <option>Quarterly</option>
+                      <option>Half-Yearly</option>
+                      <option>Yearly</option>
+                      <option>One-time</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Frequency</label>
-                  <select
-                    value={formData.frequency}
-                    onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'white', fontSize: '0.95rem', color: '#1e293b' }}
-                  >
-                    <option>Monthly</option>
-                    <option>Quarterly</option>
-                    <option>Half-Yearly</option>
-                    <option>Yearly</option>
-                    <option>One-time</option>
-                  </select>
-                </div>
-              </div>
+              )}
 
-              {/* ---- Next due date / Date of Payment ---- */}
+              {/* ---- Date field: Start Date for hand loans, Next due date otherwise ---- */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                    {formData.category?.toLowerCase().includes('interest given') ? 'Amount Lent Date' :
+                    {isHandLoanCategory ? 'Start Date' :
+                     formData.category?.toLowerCase().includes('interest given') ? 'Amount Lent Date' :
                      formData.category?.toLowerCase().includes('interest taken') ? 'Amount Taken Date' :
                      formData.category?.toLowerCase().includes('other') ? 'Date of Payment' :
                      'Next due date'}

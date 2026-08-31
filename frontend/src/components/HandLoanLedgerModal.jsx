@@ -1,61 +1,92 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { API_URL, SERVER_URL } from '../config';
+import { API_URL } from '../config';
 
 export default function HandLoanLedgerModal({ bill, onClose }) {
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showSetup, setShowSetup] = useState(false);
-  
-  const isTaken = bill.category?.toLowerCase().includes('taken');
-
-  const [setupForm, setSetupForm] = useState({
-    initialAmount: bill.amount || '',
-    startDate: new Date().toISOString().split('T')[0]
-  });
-
   const [showAddTx, setShowAddTx] = useState(false);
-  const [txForm, setTxForm] = useState({ 
-    amount: '', 
-    date: new Date().toISOString().split('T')[0], 
-    note: '', 
-    paymentMode: '', 
-    transactionType: isTaken ? 'received' : 'given', 
-    proofFile: null 
-  });
-  
   const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => {
-    fetchLedger();
-  }, []);
+  const personName = bill.details?.personName || bill.title;
+  const startDate = bill.dueDate
+    ? new Date(bill.dueDate).toISOString().split('T')[0]
+    : new Date().toISOString().split('T')[0];
 
-  const fetchLedger = async () => {
+  const defaultTx = () => ({
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    note: '',
+    paymentMode: '',
+    transactionType: 'given',
+    proofFile: null
+  });
+
+  const [txForm, setTxForm] = useState(defaultTx());
+
+  const autoInitLedger = useCallback(async () => {
+    try {
+      const res = await axios.post(`${API_URL}/hand-loans-ledger`, {
+        expenseId: bill._id,
+        personName,
+        initialAmount: 0,
+        startDate
+      });
+      return res.data;
+    } catch (err) {
+      // If already exists (race), try to fetch it
+      const res2 = await axios.get(`${API_URL}/hand-loans-ledger/${bill._id}`);
+      return res2.data;
+    }
+  }, [bill._id, personName, startDate]);
+
+  const fetchLedger = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/hand-loans-ledger/${bill._id}`);
       setLedger(res.data);
     } catch (err) {
       if (err.response?.status === 404) {
-        setShowSetup(true);
+        // Auto-initialize silently (no setup form needed)
+        try {
+          const created = await autoInitLedger();
+          setLedger(created);
+          // Auto-show add-transaction for first use
+          setShowAddTx(true);
+        } catch (e2) {
+          console.error('Failed to auto-init ledger', e2);
+        }
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [bill._id, autoInitLedger]);
 
-  const createLedger = async (e) => {
+  useEffect(() => {
+    fetchLedger();
+  }, [fetchLedger]);
+
+  const addTransaction = async (e) => {
     e.preventDefault();
+    if (!ledger) return;
     try {
       setActionLoading(true);
-      const res = await axios.post(`${API_URL}/hand-loans-ledger`, {
-        expenseId: bill._id,
-        personName: bill.details?.personName || bill.title,
-        initialAmount: parseFloat(setupForm.initialAmount),
-        startDate: setupForm.startDate
-      });
+      const fd = new FormData();
+      fd.append('amount', txForm.amount);
+      fd.append('date', txForm.date);
+      fd.append('note', txForm.note);
+      fd.append('paymentMode', txForm.paymentMode);
+      fd.append('transactionType', txForm.transactionType);
+      if (txForm.proofFile) fd.append('proofFile', txForm.proofFile);
+
+      const res = await axios.post(
+        `${API_URL}/hand-loans-ledger/${ledger._id}/add-transaction`,
+        fd,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
       setLedger(res.data);
-      setShowSetup(false);
+      setShowAddTx(false);
+      setTxForm(defaultTx());
     } catch (err) {
       alert('Error: ' + (err.response?.data?.error || err.message));
     } finally {
@@ -64,58 +95,37 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
   };
 
   const deleteEntry = async (entryId) => {
-    if (!entryId) return;
+    if (!entryId || !ledger) return;
     try {
-      const res = await axios.delete(`${API_URL}/hand-loans-ledger/${ledger._id}/entry/${String(entryId)}`);
+      const res = await axios.delete(
+        `${API_URL}/hand-loans-ledger/${ledger._id}/entry/${String(entryId)}`
+      );
       setLedger(res.data);
     } catch (err) {
       alert('Error: ' + (err.response?.data?.error || err.message));
     }
   };
 
-  const addTransaction = async (e) => {
-    e.preventDefault();
-    try {
-      setActionLoading(true);
-      const formData = new FormData();
-      formData.append('amount', txForm.amount);
-      formData.append('date', txForm.date);
-      formData.append('note', txForm.note);
-      formData.append('paymentMode', txForm.paymentMode);
-      formData.append('transactionType', txForm.transactionType);
-      
-      if (txForm.proofFile) {
-        formData.append('proofFile', txForm.proofFile);
-      }
-
-      const res = await axios.post(`${API_URL}/hand-loans-ledger/${ledger._id}/add-transaction`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
-      setLedger(res.data);
-      setShowAddTx(false);
-      setTxForm({ 
-        amount: '', 
-        date: new Date().toISOString().split('T')[0], 
-        note: '', 
-        paymentMode: '', 
-        transactionType: isTaken ? 'received' : 'given', 
-        proofFile: null 
-      });
-    } catch (err) {
-      alert('Error: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const inputStyle = {
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const inp = {
     width: '100%', padding: '0.65rem 1rem',
     border: '1px solid var(--border-color)', borderRadius: '8px',
     background: 'white', fontSize: '0.9rem', color: '#1e293b'
   };
-  const labelStyle = { display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' };
+  const lbl = {
+    display: 'block', fontSize: '0.78rem',
+    color: 'var(--text-muted)', marginBottom: '0.4rem'
+  };
 
+  const balance = ledger?.currentBalance ?? 0;
+  // Real transactions (exclude the silent opening-at-zero entry)
+  const realEntries = (ledger?.entries || []).filter(
+    e => !(e.type === 'opening' && e.amount === 0)
+  );
+  const totalGiven    = realEntries.filter(e => e.type === 'given').reduce((s, e) => s + e.amount, 0);
+  const totalReceived = realEntries.filter(e => e.type === 'received').reduce((s, e) => s + e.amount, 0);
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
       onClick={onClose}
@@ -126,128 +136,128 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
         style={{
-          background: '#fffdf6', borderRadius: '14px', width: '700px',
-          maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+          background: '#fffdf6', borderRadius: '14px', width: '740px',
+          maxWidth: '95vw', maxHeight: '92vh',
+          display: 'flex', flexDirection: 'column',
           boxShadow: '0 30px 70px rgba(0,0,0,0.3)', color: '#1e293b', overflow: 'hidden'
         }}
       >
+        {/* ── HEADER ───────────────────────────────────────────────────── */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-color)',
-          background: '#f0f9ff', flexShrink: 0
+          padding: '1.25rem 2rem', borderBottom: '1px solid var(--border-color)',
+          background: 'linear-gradient(135deg,#0369a1,#0ea5e9)', flexShrink: 0
         }}>
           <div>
-            <h2 style={{ fontFamily: 'Merriweather, serif', fontSize: '1.3rem', margin: 0, color: '#0369a1' }}>
-              Hand Loan Ledger
+            <h2 style={{ fontFamily: 'Merriweather,serif', fontSize: '1.2rem', margin: 0, color: 'white' }}>
+              ✋ Hand Loan — {personName}
             </h2>
-            <div style={{ fontSize: '0.82rem', color: '#0ea5e9', marginTop: '0.2rem', fontWeight: 500 }}>
-              {bill.details?.personName || bill.title} ({isTaken ? 'Taken' : 'Given'})
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.75)', marginTop: '0.2rem' }}>
+              {bill.category} · Started {startDate}
             </div>
           </div>
           <button onClick={onClose} style={{
-            background: 'none', border: '1px solid #bae6fd', borderRadius: '6px',
-            width: '32px', height: '32px', cursor: 'pointer', color: '#0369a1',
-            fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.4)',
+            borderRadius: '6px', width: '32px', height: '32px', cursor: 'pointer',
+            color: 'white', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>×</button>
         </div>
 
+        {/* ── BODY ─────────────────────────────────────────────────────── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
-          {showSetup && (
-            <div>
-              <div style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                Initialize the hand loan ledger for {bill.details?.personName || bill.title}.
-              </div>
-              <form onSubmit={createLedger}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div>
-                    <label style={labelStyle}>Opening Balance (₹)</label>
-                    <input type="number" required style={inputStyle}
-                      value={setupForm.initialAmount}
-                      onChange={(e) => setSetupForm({ ...setupForm, initialAmount: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Start Date</label>
-                    <input type="date" required style={inputStyle}
-                      value={setupForm.startDate}
-                      onChange={(e) => setSetupForm({ ...setupForm, startDate: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <button type="submit" disabled={actionLoading} style={{
-                  padding: '0.75rem 2rem', background: '#0284c7', color: 'white',
-                  border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95rem'
-                }}>
-                  {actionLoading ? 'Creating...' : 'Initialize Ledger'}
-                </button>
-              </form>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+              Loading ledger…
             </div>
-          )}
-
-          {!showSetup && ledger && (
+          ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ padding: '1.5rem', background: 'white', border: '1px solid var(--border-color)', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-                    Current Running Balance
+              {/* ── SUMMARY CARDS ─────────────────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#991b1b', marginBottom: '0.3rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Given</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#b91c1c' }}>₹{totalGiven.toLocaleString('en-IN')}</div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#166534', marginBottom: '0.3rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Received</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#15803d' }}>₹{totalReceived.toLocaleString('en-IN')}</div>
+                </div>
+                <div style={{
+                  padding: '1rem',
+                  background: balance > 0 ? '#e0f2fe' : balance < 0 ? '#fef2f2' : '#f8fafc',
+                  border: `1px solid ${balance > 0 ? '#38bdf8' : balance < 0 ? '#fca5a5' : '#e2e8f0'}`,
+                  borderRadius: '10px', textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.75rem', color: balance > 0 ? '#0369a1' : balance < 0 ? '#991b1b' : '#64748b', marginBottom: '0.3rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {balance > 0 ? 'Still Owed' : balance < 0 ? 'Overpaid' : 'Settled'}
                   </div>
-                  <div style={{ fontSize: '2rem', fontWeight: '700', color: ledger.currentBalance > 0 ? (isTaken ? '#dc2626' : '#15803d') : '#333' }}>
-                    ₹{ledger.currentBalance.toLocaleString('en-IN')}
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: balance > 0 ? '#0369a1' : balance < 0 ? '#b91c1c' : '#475569' }}>
+                    ₹{Math.abs(balance).toLocaleString('en-IN')}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+              {/* ── ADD TRANSACTION BUTTON ────────────────────────────── */}
+              <div style={{ marginBottom: '1rem' }}>
                 <button
-                  onClick={() => setShowAddTx(!showAddTx)}
+                  onClick={() => setShowAddTx(v => !v)}
                   style={{
-                    padding: '0.6rem 1.25rem', background: '#e0f2fe', color: '#0369a1',
+                    padding: '0.65rem 1.4rem', background: showAddTx ? '#0284c7' : '#e0f2fe',
+                    color: showAddTx ? 'white' : '#0369a1',
                     border: '1px solid #7dd3fc', borderRadius: '8px', cursor: 'pointer',
-                    fontWeight: '600', fontSize: '0.85rem'
+                    fontWeight: '700', fontSize: '0.9rem'
                   }}
                 >
-                  + Add Transaction
+                  {showAddTx ? '× Cancel' : '+ Add Transaction'}
                 </button>
               </div>
 
+              {/* ── ADD TRANSACTION FORM ──────────────────────────────── */}
               {showAddTx && (
                 <div style={{ padding: '1.25rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', marginBottom: '1.5rem' }}>
-                  <div style={{ fontWeight: '600', marginBottom: '1rem', color: '#0369a1' }}>New Transaction</div>
+                  <div style={{ fontWeight: '700', marginBottom: '1rem', color: '#0369a1', fontSize: '0.95rem' }}>
+                    New Transaction
+                  </div>
                   <form onSubmit={addTransaction}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', alignItems: 'end', marginBottom: '0.75rem' }}>
+                    {/* Row 1: Amount | Type | Date */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                       <div>
-                        <label style={labelStyle}>Amount (₹)</label>
-                        <input type="number" required style={inputStyle}
+                        <label style={lbl}>Amount (₹)</label>
+                        <input
+                          type="number" required min="0.01" step="0.01" style={inp}
                           value={txForm.amount}
-                          onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
+                          onChange={e => setTxForm({ ...txForm, amount: e.target.value })}
+                          placeholder="0"
                         />
                       </div>
                       <div>
-                        <label style={labelStyle}>Type</label>
-                        <select style={inputStyle}
+                        <label style={lbl}>Type</label>
+                        <select style={inp}
                           value={txForm.transactionType}
-                          onChange={(e) => setTxForm({ ...txForm, transactionType: e.target.value })}
+                          onChange={e => setTxForm({ ...txForm, transactionType: e.target.value })}
                         >
-                          <option value="given">Amount Given</option>
-                          <option value="received">Amount Received</option>
+                          <option value="given">💸 Amount Given (lent out)</option>
+                          <option value="received">💰 Amount Received (returned)</option>
                         </select>
                       </div>
                       <div>
-                        <label style={labelStyle}>Date</label>
-                        <input type="date" required style={inputStyle}
+                        <label style={lbl}>Date</label>
+                        <input type="date" required style={inp}
                           value={txForm.date}
-                          onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
+                          onChange={e => setTxForm({ ...txForm, date: e.target.value })}
                         />
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'end' }}>
+
+                    {/* Row 2: Mode | Note */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                       <div>
-                        <label style={labelStyle}>Mode</label>
-                        <select style={inputStyle}
+                        <label style={lbl}>Payment Mode</label>
+                        <select style={inp}
                           value={txForm.paymentMode}
-                          onChange={(e) => setTxForm({ ...txForm, paymentMode: e.target.value })}
+                          onChange={e => setTxForm({ ...txForm, paymentMode: e.target.value })}
                         >
                           <option value="">Select Mode</option>
                           <option value="Cash">Cash</option>
@@ -257,102 +267,104 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
                         </select>
                       </div>
                       <div>
-                        <label style={labelStyle}>Note (optional)</label>
-                        <input type="text" style={inputStyle}
+                        <label style={lbl}>Note (optional)</label>
+                        <input type="text" style={inp}
                           value={txForm.note}
-                          onChange={(e) => setTxForm({ ...txForm, note: e.target.value })}
+                          onChange={e => setTxForm({ ...txForm, note: e.target.value })}
+                          placeholder="e.g. For medical expenses"
                         />
                       </div>
                     </div>
-                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+
+                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem' }}>
                       <button type="submit" disabled={actionLoading} style={{
-                        padding: '0.55rem 1.5rem', background: '#0284c7', color: 'white',
-                        border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem'
+                        padding: '0.6rem 1.75rem', background: '#0284c7', color: 'white',
+                        border: 'none', borderRadius: '7px', cursor: 'pointer',
+                        fontWeight: '700', fontSize: '0.9rem'
                       }}>
-                        {actionLoading ? 'Saving...' : 'Save'}
+                        {actionLoading ? 'Saving…' : 'Save Transaction'}
                       </button>
-                      <button type="button" onClick={() => setShowAddTx(false)} style={{
-                        padding: '0.55rem 1rem', background: 'white', color: '#64748b',
-                        border: '1px solid var(--border-color)', borderRadius: '7px', cursor: 'pointer', fontSize: '0.88rem'
-                      }}>Cancel</button>
+                      <button type="button" onClick={() => { setShowAddTx(false); setTxForm(defaultTx()); }}
+                        style={{ padding: '0.6rem 1rem', background: 'white', color: '#64748b', border: '1px solid var(--border-color)', borderRadius: '7px', cursor: 'pointer', fontSize: '0.88rem' }}
+                      >Cancel</button>
                     </div>
                   </form>
                 </div>
               )}
 
+              {/* ── TRANSACTION TABLE ─────────────────────────────────── */}
               <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
-                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', fontSize: '0.9rem' }}>
-                  Transaction History ({ledger.entries.length} entries)
+                <div style={{ padding: '0.9rem 1.25rem', borderBottom: '1px solid var(--border-color)', fontWeight: '700', fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Transaction History</span>
+                  <span style={{ fontWeight: 400, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{realEntries.length} record{realEntries.length !== 1 ? 's' : ''}</span>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc' }}>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid var(--border-color)' }}>Date</th>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid var(--border-color)' }}>Type</th>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: '#64748b', borderBottom: '1px solid var(--border-color)' }}>Amount</th>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: '#64748b', borderBottom: '1px solid var(--border-color)' }}>Balance</th>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid var(--border-color)' }}>Details</th>
-                        <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)' }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const reversedEntries = [...ledger.entries].reverse();
-                        return reversedEntries.map((entry, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td style={{ padding: '0.7rem 1rem' }}>{new Date(entry.date).toLocaleDateString('en-IN')}</td>
-                            <td style={{ padding: '0.7rem 1rem' }}>
-                              <span style={{
-                                padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: '500',
-                                background: entry.type === 'given' ? '#fef2f2' : entry.type === 'received' ? '#f0fdf4' : '#f1f5f9',
-                                color: entry.type === 'given' ? '#991b1b' : entry.type === 'received' ? '#166534' : '#475569'
-                              }}>
-                                {entry.type.charAt(0).toUpperCase() + entry.type.slice(1)}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.7rem 1rem', textAlign: 'right', fontWeight: '500', color: entry.type === 'given' ? '#991b1b' : entry.type === 'received' ? '#166534' : '#333' }}>
-                              ₹{entry.amount.toLocaleString('en-IN')}
-                            </td>
-                            <td style={{ padding: '0.7rem 1rem', textAlign: 'right', fontWeight: '700' }}>
-                              ₹{entry.balanceAfter.toLocaleString('en-IN')}
-                            </td>
-                            <td style={{ padding: '0.7rem 1rem', color: '#64748b', fontSize: '0.8rem' }}>
-                              {entry.note}
-                              {entry.paymentMode && <div style={{fontSize: '0.7rem', color: '#1e293b', marginTop: '0.2rem'}}>Mode: {entry.paymentMode}</div>}
-                            </td>
-                            <td style={{ padding: '0.7rem 1rem', textAlign: 'center' }}>
-                              {entry.type !== 'opening' && (
-                                <button
-                                  onClick={() => deleteEntry(entry._id)}
-                                  title="Delete this entry"
-                                  style={{
-                                    background: 'none', border: '1px solid #fecaca', borderRadius: '6px',
-                                    cursor: 'pointer', padding: '0.25rem 0.5rem', color: '#dc2626',
-                                    fontSize: '0.8rem', lineHeight: 1,
-                                    transition: 'background 0.15s'
-                                  }}
-                                  onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
-                                  onMouseOut={e => e.currentTarget.style.background = 'none'}
-                                >
-                                  🗑
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
+
+                {realEntries.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    No transactions yet. Use "+ Add Transaction" to record the first one.
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc' }}>
+                          {['Date', 'Type', 'Amount', 'Balance After', 'Details', ''].map(h => (
+                            <th key={h} style={{ padding: '0.7rem 1rem', textAlign: h === 'Amount' || h === 'Balance After' ? 'right' : 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid var(--border-color)' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...ledger.entries]
+                          .filter(e => !(e.type === 'opening' && e.amount === 0))
+                          .sort((a, b) => new Date(b.date) - new Date(a.date))
+                          .map((entry, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid var(--border-color)', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                              <td style={{ padding: '0.7rem 1rem', whiteSpace: 'nowrap' }}>
+                                {new Date(entry.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </td>
+                              <td style={{ padding: '0.7rem 1rem' }}>
+                                <span style={{
+                                  padding: '0.25rem 0.65rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: '600',
+                                  background: entry.type === 'given' ? '#fef2f2' : entry.type === 'received' ? '#f0fdf4' : '#f1f5f9',
+                                  color: entry.type === 'given' ? '#991b1b' : entry.type === 'received' ? '#166534' : '#475569'
+                                }}>
+                                  {entry.type === 'given' ? '💸 Given' : entry.type === 'received' ? '💰 Received' : entry.type.charAt(0).toUpperCase() + entry.type.slice(1)}
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.7rem 1rem', textAlign: 'right', fontWeight: '600',
+                                color: entry.type === 'given' ? '#b91c1c' : entry.type === 'received' ? '#15803d' : '#1e293b' }}>
+                                ₹{entry.amount.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '0.7rem 1rem', textAlign: 'right', fontWeight: '700', color: entry.balanceAfter > 0 ? '#0369a1' : '#475569' }}>
+                                ₹{entry.balanceAfter.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '0.7rem 1rem', color: '#64748b', fontSize: '0.8rem' }}>
+                                {entry.note && <div>{entry.note}</div>}
+                                {entry.paymentMode && <div style={{ color: '#94a3b8', marginTop: '0.15rem' }}>via {entry.paymentMode}</div>}
+                              </td>
+                              <td style={{ padding: '0.7rem 1rem', textAlign: 'center' }}>
+                                {entry.type !== 'opening' && (
+                                  <button
+                                    onClick={() => deleteEntry(entry._id)}
+                                    title="Delete entry"
+                                    style={{
+                                      background: 'none', border: '1px solid #fecaca', borderRadius: '6px',
+                                      cursor: 'pointer', padding: '0.2rem 0.45rem', color: '#dc2626',
+                                      fontSize: '0.8rem', transition: 'background 0.15s'
+                                    }}
+                                    onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
+                                    onMouseOut={e => e.currentTarget.style.background = 'none'}
+                                  >🗑</button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </>
-          )}
-
-          {loading && (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-              Loading ledger...
-            </div>
           )}
         </div>
       </div>
