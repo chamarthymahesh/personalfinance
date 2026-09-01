@@ -101,30 +101,18 @@ function getBalanceAt(entries, atDate) {
   return balance;
 }
 
-// Helper: compute true Principal remaining at a given date (for Simple Interest)
 function getPrincipalAt(entries, atDate) {
   const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
   let principal = 0;
-  let unpaidInterest = 0;
   
   for (const e of sorted) {
     if (new Date(e.date) > atDate) break;
     
     if (e.type === 'opening') {
       principal = e.amount;
-    } else if (e.type === 'interest') {
-      unpaidInterest = parseFloat((unpaidInterest + e.amount).toFixed(2));
     } else if (e.type === 'partial_payment') {
-      // Payment clears interest first, then reduces principal
-      let remainingPayment = e.amount;
-      
-      if (remainingPayment >= unpaidInterest) {
-        remainingPayment = parseFloat((remainingPayment - unpaidInterest).toFixed(2));
-        unpaidInterest = 0;
-        principal = parseFloat((principal - remainingPayment).toFixed(2));
-      } else {
-        unpaidInterest = parseFloat((unpaidInterest - remainingPayment).toFixed(2));
-      }
+      principal = parseFloat((principal - e.amount).toFixed(2));
+      if (principal < 0) principal = 0;
     } else if (e.type === 'principal_addition') {
       principal = parseFloat((principal + e.amount).toFixed(2));
     }
