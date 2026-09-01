@@ -172,7 +172,10 @@ export default function LendingLedgerModal({ bill, onClose }) {
     const pdfEntries = sortedEntries.map(entry => {
       if (entry.type === 'opening') runningPdfBalance = entry.amount;
       else if (entry.type === 'interest') runningPdfBalance += entry.amount;
-      else if (entry.type === 'partial_payment') runningPdfBalance -= entry.amount;
+      else if (entry.type === 'partial_payment') {
+        runningPdfBalance -= entry.amount;
+        if (runningPdfBalance < 0) runningPdfBalance = 0;
+      }
       return { ...entry, trueBalance: runningPdfBalance };
     });
 
@@ -489,7 +492,10 @@ export default function LendingLedgerModal({ bill, onClose }) {
                         const displayEntries = sortedEntries.map(entry => {
                           if (entry.type === 'opening') runningDisplayBalance = entry.amount;
                           else if (entry.type === 'interest') runningDisplayBalance += entry.amount;
-                          else if (entry.type === 'partial_payment') runningDisplayBalance -= entry.amount;
+                          else if (entry.type === 'partial_payment') {
+                            runningDisplayBalance -= entry.amount;
+                            if (runningDisplayBalance < 0) runningDisplayBalance = 0; // clamp — final closing payment
+                          }
                           return { ...entry, trueBalance: runningDisplayBalance };
                         });
                         
