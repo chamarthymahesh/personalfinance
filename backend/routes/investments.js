@@ -3,6 +3,7 @@ const router = express.Router();
 const InvestmentLedger = require('../models/InvestmentLedger');
 const Expense = require('../models/Expense');
 const auth = require('../middleware/auth');
+const syncExpenseStatus = require('../utils/syncExpenseStatus');
 const multer = require('multer');
 const path = require('path');
 
@@ -58,6 +59,7 @@ router.post('/init', async (req, res) => {
     });
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.status(201).json({ success: true, data: ledger });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -114,6 +116,7 @@ router.post('/:id/entry', upload.single('proofFile'), async (req, res) => {
     ledger.totalInvested = runningTotal;
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.status(200).json({ success: true, data: ledger });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -145,6 +148,7 @@ router.delete('/:id/entry/:entryId', async (req, res) => {
     ledger.totalInvested = runningTotal;
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.status(200).json({ success: true, data: ledger });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -222,6 +226,7 @@ router.post('/:id/auto-generate', async (req, res) => {
     ledger.totalInvested = runningTotal;
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.status(200).json({ success: true, data: ledger, generated: newEntries.length });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

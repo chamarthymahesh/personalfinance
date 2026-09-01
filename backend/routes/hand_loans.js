@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const HandLoanLedger = require('../models/HandLoanLedger');
 const auth = require('../middleware/auth');
+const syncExpenseStatus = require('../utils/syncExpenseStatus');
 
 router.use(auth);
 
@@ -76,6 +77,7 @@ router.post('/', async (req, res) => {
     });
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.status(201).json(ledger);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -113,6 +115,7 @@ router.post('/:id/add-transaction', upload.single('proofFile'), async (req, res)
     ledger.currentBalance = finalBalance;
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.json(ledger);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -142,6 +145,7 @@ router.delete('/:id/entry/:entryId', async (req, res) => {
     ledger.currentBalance = finalBalance;
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.json(ledger);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -184,6 +188,7 @@ router.put('/:id/entry/:entryId', upload.single('proofFile'), async (req, res) =
     ledger.currentBalance = finalBalance;
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.json(ledger);
   } catch (err) {
     res.status(500).json({ error: err.message });

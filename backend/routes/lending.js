@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const LendingLedger = require('../models/LendingLedger');
 const auth = require('../middleware/auth');
+const syncExpenseStatus = require('../utils/syncExpenseStatus');
 
 router.use(auth);
 
@@ -55,6 +56,7 @@ router.post('/', async (req, res) => {
     });
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.status(201).json(ledger);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -82,6 +84,7 @@ router.post('/:id/add-interest', async (req, res) => {
 
     ledger.outstandingBalance = newBalance;
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.json(ledger);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -290,6 +293,7 @@ router.post('/:id/sync-interest', async (req, res) => {
     ledger.outstandingBalance = runningBalance;
 
     if (newEntriesCount > 0 || updatedCurrentMonth) await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
 
     res.json({ ledger, newEntriesCount, updatedCurrentMonth });
   } catch (err) {
@@ -378,6 +382,7 @@ router.post('/:id/recalculate-interest', async (req, res) => {
     
     ledger.outstandingBalance = runningBalance;
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
 
     res.json({ ledger, newEntriesCount });
   } catch (err) {
@@ -428,6 +433,7 @@ router.post('/:id/add-payment', upload.single('proofFile'), async (req, res) => 
 
     ledger.outstandingBalance = runningBalance;
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.json(ledger);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -474,6 +480,7 @@ router.post('/:id/add-principal', upload.single('proofFile'), async (req, res) =
 
     ledger.outstandingBalance = runningBalance;
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.json(ledger);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -508,6 +515,7 @@ router.delete('/:id/entry/:entryId', async (req, res) => {
     ledger.outstandingBalance = balance;
 
     await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
     res.json(ledger);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -581,6 +589,7 @@ async function recalculateLedgerInterest(ledger) {
   
   ledger.outstandingBalance = runningBalance;
   await ledger.save();
+    await syncExpenseStatus(ledger.expenseId, ledger.outstandingBalance);
   return ledger;
 }
 
