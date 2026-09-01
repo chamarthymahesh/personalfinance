@@ -101,23 +101,46 @@ function getBalanceAt(entries, atDate) {
   return balance;
 }
 
+// Helper: compute true Principal remaining at a given date (for Simple Interest)
+// atDate: when computing interest for a specific day, pass end-of-that-day.
+// Payments are effective from midnight of the NEXT day, so a payment on July 20
+// reduces principal from July 21 onwards. Interest is still charged on July 20.
 function getPrincipalAt(entries, atDate) {
   const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
   let principal = 0;
+  let unpaidInterest = 0;
   
   for (const e of sorted) {
-    if (new Date(e.date) > atDate) break;
-    
+    const entryDate = new Date(e.date);
+
     if (e.type === 'opening') {
+      if (entryDate > atDate) break;
       principal = e.amount;
+    } else if (e.type === 'interest') {
+      if (entryDate > atDate) break;
+      unpaidInterest = parseFloat((unpaidInterest + e.amount).toFixed(2));
     } else if (e.type === 'partial_payment') {
-      principal = parseFloat((principal - e.amount).toFixed(2));
-      if (principal < 0) principal = 0;
+      // Payment takes effect from the START of the day AFTER the payment date
+      // so interest is charged on principal for the full payment day itself.
+      const effectiveDate = new Date(entryDate);
+      effectiveDate.setDate(effectiveDate.getDate() + 1); // next day
+      effectiveDate.setHours(0, 0, 0, 0);
+      if (effectiveDate > atDate) break;
+
+      let remainingPayment = e.amount;
+      if (remainingPayment >= unpaidInterest) {
+        remainingPayment = parseFloat((remainingPayment - unpaidInterest).toFixed(2));
+        unpaidInterest = 0;
+        principal = parseFloat((principal - remainingPayment).toFixed(2));
+      } else {
+        unpaidInterest = parseFloat((unpaidInterest - remainingPayment).toFixed(2));
+      }
     } else if (e.type === 'principal_addition') {
+      if (entryDate > atDate) break;
       principal = parseFloat((principal + e.amount).toFixed(2));
     }
   }
-  return principal;
+  return principal < 0 ? 0 : principal;
 }
 
 // Helper: compute effective principal for Yearly Compound Interest.
