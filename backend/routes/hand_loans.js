@@ -25,7 +25,7 @@ function recalculateBalance(entries) {
   let balance = 0;
   for (const e of sorted) {
     if (e.type === 'opening') {
-      balance = e.amount;
+      balance = parseFloat((balance + e.amount).toFixed(2));
     } else if (e.type === 'given') {
       // Giving money increases the balance owed to us (or our debt if negative)
       // We assume balance is "Amount owed to us" (or our debt depending on context, handled by absolute amount)

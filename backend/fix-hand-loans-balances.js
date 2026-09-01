@@ -8,7 +8,7 @@ function recalculateBalance(entries) {
   let balance = 0;
   for (const e of sorted) {
     if (e.type === 'opening') {
-      balance = e.amount;
+      balance = parseFloat((balance + e.amount).toFixed(2));
     } else if (e.type === 'given') {
       balance = parseFloat((balance + e.amount).toFixed(2));
     } else if (e.type === 'received') {
