@@ -418,9 +418,8 @@ router.post('/:id/add-payment', upload.single('proofFile'), async (req, res) => 
       else if (e.type === 'interest') runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       else if (e.type === 'partial_payment') {
         runningBalance = parseFloat((runningBalance - e.amount).toFixed(2));
-        if (runningBalance < 0) {
-          return res.status(400).json({ error: 'Payment exceeds outstanding balance at that date' });
-        }
+        // Clamp to 0 — a final payment might slightly exceed balance (rounding / closing payment)
+        if (runningBalance < 0) runningBalance = 0;
       } else if (e.type === 'principal_addition') {
         runningBalance = parseFloat((runningBalance + e.amount).toFixed(2));
       }
