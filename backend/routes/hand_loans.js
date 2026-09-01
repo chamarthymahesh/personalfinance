@@ -148,4 +148,46 @@ router.delete('/:id/entry/:entryId', async (req, res) => {
   }
 });
 
+// Edit an entry
+router.put('/:id/entry/:entryId', upload.single('proofFile'), async (req, res) => {
+  try {
+    const ledger = await HandLoanLedger.findById(req.params.id);
+    if (!ledger) return res.status(404).json({ error: 'Ledger not found' });
+
+    const entryIndex = ledger.entries.findIndex(e => e._id.toString() === req.params.entryId);
+    if (entryIndex === -1) return res.status(404).json({ error: 'Entry not found' });
+
+    const entry = ledger.entries[entryIndex];
+
+    const { amount, date, note, paymentMode, transactionType } = req.body;
+    
+    if (entry.type !== 'opening') {
+      if (transactionType && !['given', 'received'].includes(transactionType)) {
+        return res.status(400).json({ error: 'Invalid transaction type' });
+      }
+      if (transactionType) entry.type = transactionType;
+      if (amount !== undefined) entry.amount = parseFloat(amount);
+    } else {
+      if (amount !== undefined) entry.amount = parseFloat(amount);
+    }
+    
+    if (date) entry.date = date;
+    if (note !== undefined) entry.note = note;
+    if (paymentMode !== undefined) entry.paymentMode = paymentMode;
+
+    if (req.file) {
+      entry.proofUrl = `/uploads/${req.file.filename}`;
+    }
+
+    const { sortedEntries, finalBalance } = recalculateBalance(ledger.entries);
+    ledger.entries = sortedEntries;
+    ledger.currentBalance = finalBalance;
+
+    await ledger.save();
+    res.json(ledger);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

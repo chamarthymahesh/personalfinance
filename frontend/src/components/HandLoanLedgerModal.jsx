@@ -6,6 +6,7 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAddTx, setShowAddTx] = useState(false);
+  const [editingTxId, setEditingTxId] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const personName = bill.details?.personName || bill.title;
@@ -79,13 +80,23 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
       fd.append('transactionType', txForm.transactionType);
       if (txForm.proofFile) fd.append('proofFile', txForm.proofFile);
 
-      const res = await axios.post(
-        `${API_URL}/hand-loans-ledger/${ledger._id}/add-transaction`,
-        fd,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
+      let res;
+      if (editingTxId) {
+        res = await axios.put(
+          `${API_URL}/hand-loans-ledger/${ledger._id}/entry/${editingTxId}`,
+          fd,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+      } else {
+        res = await axios.post(
+          `${API_URL}/hand-loans-ledger/${ledger._id}/add-transaction`,
+          fd,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+      }
       setLedger(res.data);
       setShowAddTx(false);
+      setEditingTxId(null);
       setTxForm(defaultTx());
     } catch (err) {
       alert('Error: ' + (err.response?.data?.error || err.message));
@@ -122,8 +133,12 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
   const realEntries = (ledger?.entries || []).filter(
     e => !(e.type === 'opening' && e.amount === 0)
   );
-  const totalGiven    = realEntries.filter(e => e.type === 'given').reduce((s, e) => s + e.amount, 0);
-  const totalReceived = realEntries.filter(e => e.type === 'received').reduce((s, e) => s + e.amount, 0);
+  
+  const openingEntry = (ledger?.entries || []).find(e => e.type === 'opening');
+  const openingAmt = openingEntry ? openingEntry.amount : 0;
+  
+  const totalGiven = realEntries.filter(e => e.type === 'given').reduce((s, e) => s + e.amount, 0) + (openingAmt > 0 ? openingAmt : 0);
+  const totalReceived = realEntries.filter(e => e.type === 'received').reduce((s, e) => s + e.amount, 0) + (openingAmt < 0 ? Math.abs(openingAmt) : 0);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -202,23 +217,31 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
               {/* ── ADD TRANSACTION BUTTON ────────────────────────────── */}
               <div style={{ marginBottom: '1rem' }}>
                 <button
-                  onClick={() => setShowAddTx(v => !v)}
+                  onClick={() => {
+                    if (showAddTx || editingTxId) {
+                      setShowAddTx(false);
+                      setEditingTxId(null);
+                      setTxForm(defaultTx());
+                    } else {
+                      setShowAddTx(true);
+                    }
+                  }}
                   style={{
-                    padding: '0.65rem 1.4rem', background: showAddTx ? '#0284c7' : '#e0f2fe',
-                    color: showAddTx ? 'white' : '#0369a1',
+                    padding: '0.65rem 1.4rem', background: (showAddTx || editingTxId) ? '#0284c7' : '#e0f2fe',
+                    color: (showAddTx || editingTxId) ? 'white' : '#0369a1',
                     border: '1px solid #7dd3fc', borderRadius: '8px', cursor: 'pointer',
                     fontWeight: '700', fontSize: '0.9rem'
                   }}
                 >
-                  {showAddTx ? '× Cancel' : '+ Add Transaction'}
+                  {(showAddTx || editingTxId) ? '× Cancel' : '+ Add Transaction'}
                 </button>
               </div>
 
               {/* ── ADD TRANSACTION FORM ──────────────────────────────── */}
-              {showAddTx && (
+              {(showAddTx || editingTxId) && (
                 <div style={{ padding: '1.25rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', marginBottom: '1.5rem' }}>
                   <div style={{ fontWeight: '700', marginBottom: '1rem', color: '#0369a1', fontSize: '0.95rem' }}>
-                    New Transaction
+                    {editingTxId ? 'Edit Transaction' : 'New Transaction'}
                   </div>
                   <form onSubmit={addTransaction}>
                     {/* Row 1: Amount | Type | Date */}
@@ -251,8 +274,8 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
                       </div>
                     </div>
 
-                    {/* Row 2: Mode | Note */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    {/* Row 2: Mode | Note | Proof File */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                       <div>
                         <label style={lbl}>Payment Mode</label>
                         <select style={inp}
@@ -274,6 +297,13 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
                           placeholder="e.g. For medical expenses"
                         />
                       </div>
+                      <div>
+                        <label style={lbl}>Payment Proof</label>
+                        <input type="file" style={inp}
+                          onChange={e => setTxForm({ ...txForm, proofFile: e.target.files[0] })}
+                          accept="image/*,.pdf"
+                        />
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem' }}>
@@ -284,7 +314,7 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
                       }}>
                         {actionLoading ? 'Saving…' : 'Save Transaction'}
                       </button>
-                      <button type="button" onClick={() => { setShowAddTx(false); setTxForm(defaultTx()); }}
+                      <button type="button" onClick={() => { setShowAddTx(false); setEditingTxId(null); setTxForm(defaultTx()); }}
                         style={{ padding: '0.6rem 1rem', background: 'white', color: '#64748b', border: '1px solid var(--border-color)', borderRadius: '7px', cursor: 'pointer', fontSize: '0.88rem' }}
                       >Cancel</button>
                     </div>
@@ -341,20 +371,48 @@ export default function HandLoanLedgerModal({ bill, onClose }) {
                               <td style={{ padding: '0.7rem 1rem', color: '#64748b', fontSize: '0.8rem' }}>
                                 {entry.note && <div>{entry.note}</div>}
                                 {entry.paymentMode && <div style={{ color: '#94a3b8', marginTop: '0.15rem' }}>via {entry.paymentMode}</div>}
+                                {entry.proofUrl && (
+                                  <div style={{ marginTop: '0.2rem' }}>
+                                    <a href={`${API_URL}${entry.proofUrl}`} target="_blank" rel="noreferrer" style={{ color: '#0284c7', textDecoration: 'none' }}>📎 View Proof</a>
+                                  </div>
+                                )}
                               </td>
                               <td style={{ padding: '0.7rem 1rem', textAlign: 'center' }}>
                                 {entry.type !== 'opening' && (
-                                  <button
-                                    onClick={() => deleteEntry(entry._id)}
-                                    title="Delete entry"
-                                    style={{
-                                      background: 'none', border: '1px solid #fecaca', borderRadius: '6px',
-                                      cursor: 'pointer', padding: '0.2rem 0.45rem', color: '#dc2626',
-                                      fontSize: '0.8rem', transition: 'background 0.15s'
-                                    }}
-                                    onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
-                                    onMouseOut={e => e.currentTarget.style.background = 'none'}
-                                  >🗑</button>
+                                  <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
+                                    <button
+                                      onClick={() => {
+                                        setEditingTxId(entry._id);
+                                        setTxForm({
+                                          amount: entry.amount,
+                                          date: new Date(entry.date).toISOString().split('T')[0],
+                                          note: entry.note || '',
+                                          paymentMode: entry.paymentMode || '',
+                                          transactionType: entry.type,
+                                          proofFile: null
+                                        });
+                                      }}
+                                      title="Edit entry"
+                                      style={{
+                                        background: 'none', border: '1px solid #bae6fd', borderRadius: '6px',
+                                        cursor: 'pointer', padding: '0.2rem 0.45rem', color: '#0284c7',
+                                        fontSize: '0.8rem', transition: 'background 0.15s'
+                                      }}
+                                      onMouseOver={e => e.currentTarget.style.background = '#f0f9ff'}
+                                      onMouseOut={e => e.currentTarget.style.background = 'none'}
+                                    >✎</button>
+                                    <button
+                                      onClick={() => deleteEntry(entry._id)}
+                                      title="Delete entry"
+                                      style={{
+                                        background: 'none', border: '1px solid #fecaca', borderRadius: '6px',
+                                        cursor: 'pointer', padding: '0.2rem 0.45rem', color: '#dc2626',
+                                        fontSize: '0.8rem', transition: 'background 0.15s'
+                                      }}
+                                      onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
+                                      onMouseOut={e => e.currentTarget.style.background = 'none'}
+                                    >🗑</button>
+                                  </div>
                                 )}
                               </td>
                             </tr>
