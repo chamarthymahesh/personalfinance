@@ -846,6 +846,44 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               ) : (
                 /* Paid bill actions */
                 <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                    {/* Show 'View Ledger' for lending/borrowing categories even when paid */}
+                    {(bill.category?.toLowerCase().includes('lending') || 
+                      bill.category?.toLowerCase().includes('interest given') ||
+                      bill.category?.toLowerCase().includes('borrowing') ||
+                      bill.category?.toLowerCase().includes('interest taken')) ? (
+                      <button onClick={() => setLendingLedgerBill(bill)} style={{
+                        background: '#fef3c7', border: '1px solid #f59e0b',
+                        color: '#92400e', padding: '0.45rem 0.75rem', borderRadius: '6px',
+                        fontWeight: '600', cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap'
+                      }}>
+                        📒 View Ledger
+                      </button>
+                    ) : bill.category?.toLowerCase().includes('hand loan') ? (
+                      <button onClick={() => setHandLoanLedgerBill(bill)} style={{
+                        background: '#e0f2fe', border: '1px solid #38bdf8',
+                        color: '#0369a1', padding: '0.45rem 0.75rem', borderRadius: '6px',
+                        fontWeight: '600', cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap'
+                      }}>
+                        📒 View Hand Loan
+                      </button>
+                    ) : bill.category?.toLowerCase().includes('mutual funds') ? (
+                      <button onClick={() => setInvestmentLedgerBill(bill)} style={{
+                        background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.4)',
+                        color: 'var(--accent-primary)', padding: '0.45rem 0.75rem', borderRadius: '6px',
+                        fontWeight: '600', cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap'
+                      }}>
+                        📈 View Ledger
+                      </button>
+                    ) : (
+                      <button onClick={() => setExpenseLedgerBill(bill)} style={{
+                        background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.4)',
+                        color: '#10b981', padding: '0.45rem 0.75rem', borderRadius: '6px',
+                        fontWeight: '600', cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap'
+                      }}>
+                        📒 View Ledger
+                      </button>
+                    )}
+
                   {!bill.paymentProof ? (
                     <label style={{
                       background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.3)',
