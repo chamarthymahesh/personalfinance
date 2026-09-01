@@ -215,17 +215,25 @@ router.post('/:id/sync-interest', async (req, res) => {
       if (daysElapsed > 0) {
         const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
         
-        // Evaluate basis at the end of the period (before interest is applied)
-        let basisAmount;
-        if (ledger.interestType === 'Compound Interest') {
-          basisAmount = getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1));
-        } else if (ledger.interestType === 'Yearly Compound Interest') {
-          basisAmount = getYearlyCompoundPrincipalAt(ledger.entries, ledger.startDate, ledger.interestRate, new Date(periodEnd.getTime() - 1));
-        } else {
-          basisAmount = getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        let interestAmount = 0;
+        for (let d = new Date(startDay); d < endDay; d.setDate(d.getDate() + 1)) {
+          let endOfDay = new Date(d);
+          endOfDay.setHours(23, 59, 59, 999);
+          
+          let dayBasis;
+          if (ledger.interestType === 'Compound Interest') {
+            dayBasis = getBalanceAt(ledger.entries, endOfDay);
+          } else if (ledger.interestType === 'Yearly Compound Interest') {
+            dayBasis = getYearlyCompoundPrincipalAt(ledger.entries, ledger.startDate, ledger.interestRate, endOfDay);
+          } else {
+            dayBasis = getPrincipalAt(ledger.entries, endOfDay);
+          }
+          
+          const dailyFullInterest = (dayBasis * ledger.interestRate) / 100;
+          const dailyInterest = dailyFullInterest / daysInMonth;
+          interestAmount += dailyInterest;
         }
-        const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
-        const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
+        interestAmount = parseFloat(interestAmount.toFixed(2));
         
         const monthLabel = currentStart.toLocaleString('default', { month: 'short', year: 'numeric' });
         
@@ -309,16 +317,25 @@ router.post('/:id/recalculate-interest', async (req, res) => {
       if (daysElapsed > 0) {
         const daysInMonth = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
         
-        let basisAmount;
-        if (ledger.interestType === 'Compound Interest') {
-          basisAmount = getBalanceAt(ledger.entries, new Date(periodEnd.getTime() - 1));
-        } else if (ledger.interestType === 'Yearly Compound Interest') {
-          basisAmount = getYearlyCompoundPrincipalAt(ledger.entries, ledger.startDate, ledger.interestRate, new Date(periodEnd.getTime() - 1));
-        } else {
-          basisAmount = getPrincipalAt(ledger.entries, new Date(periodEnd.getTime() - 1));
+        let interestAmount = 0;
+        for (let d = new Date(startDay); d < endDay; d.setDate(d.getDate() + 1)) {
+          let endOfDay = new Date(d);
+          endOfDay.setHours(23, 59, 59, 999);
+          
+          let dayBasis;
+          if (ledger.interestType === 'Compound Interest') {
+            dayBasis = getBalanceAt(ledger.entries, endOfDay);
+          } else if (ledger.interestType === 'Yearly Compound Interest') {
+            dayBasis = getYearlyCompoundPrincipalAt(ledger.entries, ledger.startDate, ledger.interestRate, endOfDay);
+          } else {
+            dayBasis = getPrincipalAt(ledger.entries, endOfDay);
+          }
+          
+          const dailyFullInterest = (dayBasis * ledger.interestRate) / 100;
+          const dailyInterest = dailyFullInterest / daysInMonth;
+          interestAmount += dailyInterest;
         }
-        const fullInterest = parseFloat(((basisAmount * ledger.interestRate) / 100).toFixed(2));
-        const interestAmount = parseFloat(((fullInterest * daysElapsed) / daysInMonth).toFixed(2));
+        interestAmount = parseFloat(interestAmount.toFixed(2));
         
         const monthLabel = currentStart.toLocaleString('default', { month: 'short', year: 'numeric' });
         
