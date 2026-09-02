@@ -1197,22 +1197,26 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
             </div>
 
             <form onSubmit={submitPayment} style={{ padding: '2rem' }}>
-              <div style={{ marginBottom: '2rem', padding: '1rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Paying for</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.75rem' }}>{selectedBillForPayment.title}</div>
+              <div style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.15rem' }}>Paying for</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '600', color: '#1e293b' }}>{selectedBillForPayment.title}</div>
+                </div>
                 
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Actual Bill Amount</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--accent-primary)' }}>₹</span>
-                  <input
-                    type="number"
-                    value={paymentDetails.actualAmount}
-                    onChange={(e) => setPaymentDetails({...paymentDetails, actualAmount: e.target.value})}
-                    style={{
-                      width: '150px', padding: '0.4rem 0.5rem', border: '1px solid var(--border-color)',
-                      borderRadius: '6px', background: 'white', fontSize: '1.1rem', fontWeight: '600', color: 'var(--accent-primary)'
-                    }}
-                  />
+                <div style={{ textAlign: 'right' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.15rem' }}>Actual Amount</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--accent-primary)' }}>₹</span>
+                    <input
+                      type="number"
+                      value={paymentDetails.actualAmount}
+                      onChange={(e) => setPaymentDetails({...paymentDetails, actualAmount: e.target.value})}
+                      style={{
+                        width: '100px', padding: '0.25rem 0.5rem', border: '1px solid var(--border-color)',
+                        borderRadius: '6px', background: 'white', fontSize: '1rem', fontWeight: '600', color: 'var(--accent-primary)', textAlign: 'right'
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
