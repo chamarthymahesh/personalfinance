@@ -285,7 +285,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       paidDate: new Date().toISOString().split('T')[0],
       referenceNumber: '',
       cardUsed: '',
-      paymentProofFile: null
+      paymentProofFile: null,
+      actualAmount: bill.amount
     });
     setIsPaymentModalOpen(true);
   };
@@ -302,6 +303,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
       if (paymentDetails.referenceNumber) fd.append('referenceNumber', paymentDetails.referenceNumber);
       if (paymentDetails.cardUsed) fd.append('cardUsed', paymentDetails.cardUsed);
       if (paymentDetails.paymentProofFile) fd.append('paymentProof', paymentDetails.paymentProofFile);
+      if (paymentDetails.actualAmount) fd.append('actualAmount', paymentDetails.actualAmount);
 
       await axios.put(`${API_URL}/expenses/${selectedBillForPayment._id}/pay`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -1197,8 +1199,21 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
             <form onSubmit={submitPayment} style={{ padding: '2rem' }}>
               <div style={{ marginBottom: '2rem', padding: '1rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Paying for</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' }}>{selectedBillForPayment.title}</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--accent-primary)' }}>₹{selectedBillForPayment.amount.toLocaleString('en-IN')}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.75rem' }}>{selectedBillForPayment.title}</div>
+                
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Actual Bill Amount</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--accent-primary)' }}>₹</span>
+                  <input
+                    type="number"
+                    value={paymentDetails.actualAmount}
+                    onChange={(e) => setPaymentDetails({...paymentDetails, actualAmount: e.target.value})}
+                    style={{
+                      width: '150px', padding: '0.4rem 0.5rem', border: '1px solid var(--border-color)',
+                      borderRadius: '6px', background: 'white', fontSize: '1.1rem', fontWeight: '600', color: 'var(--accent-primary)'
+                    }}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>

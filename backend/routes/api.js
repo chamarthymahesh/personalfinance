@@ -309,9 +309,13 @@ router.put('/expenses/:id/attach-proof', upload.single('paymentProof'), async (r
 // Pay expense and auto-generate next
 router.put('/expenses/:id/pay', upload.single('paymentProof'), async (req, res) => {
   try {
-    const { paymentMode, paidDate, referenceNumber } = req.body;
+    const { paymentMode, paidDate, referenceNumber, actualAmount } = req.body;
     const expense = await Expense.findById(req.params.id);
     if (!expense) return res.status(404).json({ error: 'Not found' });
+
+    if (actualAmount && !isNaN(Number(actualAmount))) {
+      expense.amount = Number(actualAmount);
+    }
 
     expense.status = 'Paid';
     if (paymentMode) expense.paymentMode = paymentMode;
