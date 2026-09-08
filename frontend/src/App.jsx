@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense, lazy, useMemo } from 'react';
 import axios from 'axios';
-import { LayoutDashboard, Receipt, ShieldCheck, TrendingUp, Landmark, Building2, PieChart, LogOut, User, ChevronLeft, ChevronRight, Settings, Bell, BarChart2, Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Mail, Shield, HeartPulse, Umbrella, HandCoins, Car, MoreHorizontal, PiggyBank, Plus } from 'lucide-react';
+import { LayoutDashboard, Receipt, ShieldCheck, TrendingUp, Landmark, Building2, PieChart, LogOut, User, ChevronLeft, ChevronRight, Settings, Bell, BarChart2, Home, Zap, Smartphone, Wifi, GraduationCap, CreditCard, Package, Mail, Shield, HeartPulse, Umbrella, HandCoins, Car, MoreHorizontal, PiggyBank, Plus, MapPin } from 'lucide-react';
 const Bills = lazy(() => import('./components/Bills'));
 const Reports = lazy(() => import('./components/Reports'));
 const SettingsPanel = lazy(() => import('./components/Settings'));
@@ -258,8 +258,8 @@ const groupedCategories = useMemo(() => {
             </li>
             <li className={`nav-link ${activeTab === 'partnership-payments' ? 'active' : ''}`} onClick={() => setActiveTab('partnership-payments')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
               <div className="nav-link-content">
-                <HandCoins size={18} />
-                {!isSidebarCollapsed && <span>Partnership</span>}
+                <MapPin size={18} />
+                {!isSidebarCollapsed && <span>Plot Purchase</span>}
               </div>
             </li>
         </ul>

@@ -72,6 +72,8 @@ const investmentsRoutes = require('./routes/investments');
 const handLoansRoutes = require('./routes/hand_loans');
 const partnershipPayments = require('./routes/partnershipPayments');
 app.use('/api/v1/partnership-payments', partnershipPayments);
+const plotPurchaseRoutes = require('./routes/plotPurchase');
+app.use('/api/v1/plots', plotPurchaseRoutes);
 
 // Mount routers
 app.use('/api/v1/auth', authRoutes);
