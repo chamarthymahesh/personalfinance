@@ -6,6 +6,7 @@ const Reports = lazy(() => import('./components/Reports'));
 const SettingsPanel = lazy(() => import('./components/Settings'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const DueAlerts = lazy(() => import('./components/DueAlerts'));
+const PartnershipPayments = lazy(() => import('./components/PartnershipPayments'));
 import './index.css';
 
 import { API_URL } from './config';
@@ -138,11 +139,21 @@ const groupedCategories = useMemo(() => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Dashboard...</div>}><Dashboard onNewEntry={handleNewEntry} /></Suspense>;
+        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Dashboard...</div>}>
+          <Dashboard onNewEntry={handleNewEntry} />
+        </Suspense>;
       case 'due-alerts':
-        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Alerts...</div>}><DueAlerts /></Suspense>;
+        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Alerts...</div>}>
+          <DueAlerts />
+        </Suspense>;
       case 'reports':
-        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Reports...</div>}><Reports /></Suspense>;
+        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Reports...</div>}>
+          <Reports />
+        </Suspense>;
+      case 'partnership-payments':
+        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Partnership Payments...</div>}>
+          <PartnershipPayments />
+        </Suspense>;
       case 'settings':
         return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Settings...</div>}><SettingsPanel /></Suspense>;
       default:
@@ -239,12 +250,18 @@ const groupedCategories = useMemo(() => {
               {!isSidebarCollapsed && <span>Due alerts</span>}
             </div>
           </li>
-          <li className={`nav-link ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
-            <div className="nav-link-content">
-              <BarChart2 size={18} />
-              {!isSidebarCollapsed && <span>Reports</span>}
-            </div>
-          </li>
+            <li className={`nav-link ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
+              <div className="nav-link-content">
+                <BarChart2 size={18} />
+                {!isSidebarCollapsed && <span>Reports</span>}
+              </div>
+            </li>
+            <li className={`nav-link ${activeTab === 'partnership-payments' ? 'active' : ''}`} onClick={() => setActiveTab('partnership-payments')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
+              <div className="nav-link-content">
+                <HandCoins size={18} />
+                {!isSidebarCollapsed && <span>Partnership</span>}
+              </div>
+            </li>
         </ul>
 
         {/* Dynamic Category Sections — scrollable area */}

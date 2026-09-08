@@ -30,6 +30,22 @@ const InvestmentEntrySchema = new mongoose.Schema({
   proofUrl: {
     type: String,
     default: ''
+  },
+  transactionId: {
+    type: String,
+    required: true
+  },
+  totalPurchasePrice: {
+    type: Number,
+    required: true
+  },
+  partnerName: {
+    type: String,
+    required: true
+  },
+  paidBy: {
+    type: String,
+    required: true
   }
 });
 

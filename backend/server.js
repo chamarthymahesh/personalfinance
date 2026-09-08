@@ -70,6 +70,8 @@ const apiRoutes = require('./routes/api');
 const lendingRoutes = require('./routes/lending');
 const investmentsRoutes = require('./routes/investments');
 const handLoansRoutes = require('./routes/hand_loans');
+const partnershipPayments = require('./routes/partnershipPayments');
+app.use('/api/v1/partnership-payments', partnershipPayments);
 
 // Mount routers
 app.use('/api/v1/auth', authRoutes);
