@@ -15,11 +15,27 @@ const PaymentSchema = new mongoose.Schema({
 // Commission agent for the plot
 const CommissionAgentSchema = new mongoose.Schema({
   agentName: { type: String, required: true },
+  commissionType: { type: String, enum: ['fixed', 'percentage'], default: 'fixed' },
+  commissionPercentage: { type: Number, default: 0 },
   commissionAmount: { type: Number, required: true },
   paidAmount: { type: Number, default: 0 },
+  paidBy: { type: String, default: '' }, // Partner who paid the commission
   paymentDate: { type: Date },
   transactionId: { type: String, default: '' },
   paymentMode: { type: String, default: '' },
+  proofFile: { type: String, default: '' },
+  proofUrl: { type: String, default: '' },
+  notes: { type: String, default: '' }
+}, { timestamps: true });
+
+// Other expenses (Registration, Document Charges, Misc)
+const OtherExpenseSchema = new mongoose.Schema({
+  expenseName: { type: String, required: true }, // e.g., 'Registration', 'Document Charges'
+  amount: { type: Number, required: true },
+  date: { type: Date, required: true, default: Date.now },
+  paidBy: { type: String, required: true }, // Partner who paid the expense
+  paymentMode: { type: String, default: '' },
+  transactionId: { type: String, default: '' },
   proofFile: { type: String, default: '' },
   proofUrl: { type: String, default: '' },
   notes: { type: String, default: '' }
@@ -42,7 +58,8 @@ const PlotPurchaseSchema = new mongoose.Schema({
   notes: { type: String, default: '' },
   partners: [PartnerSchema],
   payments: [PaymentSchema],
-  commissionAgents: [CommissionAgentSchema]
+  commissionAgents: [CommissionAgentSchema],
+  otherExpenses: [OtherExpenseSchema]
 }, { timestamps: true });
 
 module.exports = mongoose.model('PlotPurchase', PlotPurchaseSchema);

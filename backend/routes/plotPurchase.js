@@ -115,6 +115,31 @@ router.post('/:id/payments', upload.single('proofFile'), async (req, res) => {
   }
 });
 
+// PUT update payment
+router.put('/:id/payments/:paymentId', upload.single('proofFile'), async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    const payment = plot.payments.id(req.params.paymentId);
+    if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    
+    const { paidBy, amount, date, transactionId, paymentMode, proofUrl, notes } = req.body;
+    if (paidBy) payment.paidBy = paidBy;
+    if (amount) payment.amount = Number(amount);
+    if (date) payment.date = new Date(date);
+    if (transactionId !== undefined) payment.transactionId = transactionId;
+    if (paymentMode !== undefined) payment.paymentMode = paymentMode;
+    if (proofUrl !== undefined) payment.proofUrl = proofUrl;
+    if (notes !== undefined) payment.notes = notes;
+    if (req.file) payment.proofFile = `/uploads/plots/${req.file.filename}`;
+    
+    await plot.save();
+    res.json(plot);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // DELETE a payment
 router.delete('/:id/payments/:paymentId', async (req, res) => {
   try {
@@ -146,12 +171,15 @@ router.post('/:id/agents', upload.single('proofFile'), async (req, res) => {
   try {
     const plot = await PlotPurchase.findById(req.params.id);
     if (!plot) return res.status(404).json({ message: 'Plot not found' });
-    const { agentName, commissionAmount, paidAmount, paymentDate, transactionId, paymentMode, proofUrl, notes } = req.body;
+    const { agentName, commissionType, commissionPercentage, commissionAmount, paidAmount, paidBy, paymentDate, transactionId, paymentMode, proofUrl, notes } = req.body;
     const proofFile = req.file ? `/uploads/plots/${req.file.filename}` : '';
     plot.commissionAgents.push({
       agentName,
-      commissionAmount: Number(commissionAmount),
+      commissionType: commissionType || 'fixed',
+      commissionPercentage: Number(commissionPercentage || 0),
+      commissionAmount: Number(commissionAmount || 0),
       paidAmount: Number(paidAmount || 0),
+      paidBy: paidBy || '',
       paymentDate: paymentDate ? new Date(paymentDate) : undefined,
       transactionId,
       paymentMode,
@@ -173,10 +201,13 @@ router.put('/:id/agents/:agentId', upload.single('proofFile'), async (req, res) 
     if (!plot) return res.status(404).json({ message: 'Plot not found' });
     const agent = plot.commissionAgents.id(req.params.agentId);
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
-    const { agentName, commissionAmount, paidAmount, paymentDate, transactionId, paymentMode, proofUrl, notes } = req.body;
+    const { agentName, commissionType, commissionPercentage, commissionAmount, paidAmount, paidBy, paymentDate, transactionId, paymentMode, proofUrl, notes } = req.body;
     if (agentName) agent.agentName = agentName;
-    if (commissionAmount) agent.commissionAmount = Number(commissionAmount);
+    if (commissionType) agent.commissionType = commissionType;
+    if (commissionPercentage !== undefined) agent.commissionPercentage = Number(commissionPercentage);
+    if (commissionAmount !== undefined) agent.commissionAmount = Number(commissionAmount);
     if (paidAmount !== undefined) agent.paidAmount = Number(paidAmount);
+    if (paidBy !== undefined) agent.paidBy = paidBy;
     if (paymentDate) agent.paymentDate = new Date(paymentDate);
     if (transactionId !== undefined) agent.transactionId = transactionId;
     if (paymentMode !== undefined) agent.paymentMode = paymentMode;
@@ -196,6 +227,72 @@ router.delete('/:id/agents/:agentId', async (req, res) => {
     const plot = await PlotPurchase.findById(req.params.id);
     if (!plot) return res.status(404).json({ message: 'Plot not found' });
     plot.commissionAgents.id(req.params.agentId).deleteOne();
+    await plot.save();
+    res.json(plot);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── OTHER EXPENSES ────────────────────────────────────────────────────────
+
+// POST add other expense (with optional file upload)
+router.post('/:id/expenses', upload.single('proofFile'), async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    const { expenseName, amount, date, paidBy, paymentMode, transactionId, proofUrl, notes } = req.body;
+    const proofFile = req.file ? `/uploads/plots/${req.file.filename}` : '';
+    plot.otherExpenses.push({
+      expenseName,
+      amount: Number(amount),
+      date: date ? new Date(date) : new Date(),
+      paidBy,
+      paymentMode,
+      transactionId,
+      proofUrl,
+      proofFile,
+      notes
+    });
+    await plot.save();
+    res.status(201).json(plot);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// PUT update other expense
+router.put('/:id/expenses/:expenseId', upload.single('proofFile'), async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    const expense = plot.otherExpenses.id(req.params.expenseId);
+    if (!expense) return res.status(404).json({ message: 'Expense not found' });
+    
+    const { expenseName, amount, date, paidBy, paymentMode, transactionId, proofUrl, notes } = req.body;
+    if (expenseName) expense.expenseName = expenseName;
+    if (amount) expense.amount = Number(amount);
+    if (date) expense.date = new Date(date);
+    if (paidBy) expense.paidBy = paidBy;
+    if (paymentMode !== undefined) expense.paymentMode = paymentMode;
+    if (transactionId !== undefined) expense.transactionId = transactionId;
+    if (proofUrl !== undefined) expense.proofUrl = proofUrl;
+    if (notes !== undefined) expense.notes = notes;
+    if (req.file) expense.proofFile = `/uploads/plots/${req.file.filename}`;
+    
+    await plot.save();
+    res.json(plot);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE other expense
+router.delete('/:id/expenses/:expenseId', async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    plot.otherExpenses.id(req.params.expenseId).deleteOne();
     await plot.save();
     res.json(plot);
   } catch (err) {
