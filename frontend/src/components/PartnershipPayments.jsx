@@ -47,6 +47,7 @@ export default function PlotPurchase() {
   const [selectedPlot, setSelectedPlot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNewPlot, setShowNewPlot] = useState(false);
+  const [showEditPlot, setShowEditPlot] = useState(false);
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [showAddAgent, setShowAddAgent] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -114,6 +115,17 @@ export default function PlotPurchase() {
       setPlotForm({ plotName: '', location: '', area: '', totalCost: '', registrationDate: '', notes: '', partners: [{ name: '', sharePercent: 50 }, { name: '', sharePercent: 50 }] });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create plot');
+    }
+  };
+
+  const handleUpdatePlot = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`${API_URL}/plots/${selectedPlot._id}`, { ...plotForm, totalCost: Number(plotForm.totalCost) });
+      await fetchPlots();
+      setShowEditPlot(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update plot');
     }
   };
 
@@ -271,8 +283,11 @@ export default function PlotPurchase() {
           return (
             <>
               {/* Plot summary */}
-              <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
+                <button onClick={() => { setPlotForm({ plotName: selectedPlot.plotName, location: selectedPlot.location || '', area: selectedPlot.area || '', totalCost: selectedPlot.totalCost, registrationDate: selectedPlot.registrationDate ? selectedPlot.registrationDate.split('T')[0] : '', notes: selectedPlot.notes || '', partners: selectedPlot.partners.map(p => ({ name: p.name, sharePercent: p.sharePercent })) }); setShowEditPlot(true); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  Edit
+                </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', paddingRight: '4rem' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                       <MapPin size={16} color="var(--accent-primary)" />
@@ -581,6 +596,65 @@ export default function PlotPurchase() {
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowNewPlot(false)} style={{ padding: '0.6rem 1.2rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>Cancel</button>
                 <button type="submit" style={{ padding: '0.6rem 1.5rem', background: 'var(--bg-sidebar)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Create Plot</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Plot Modal */}
+      {showEditPlot && selectedPlot && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Edit Plot Details</h2>
+              <button onClick={() => setShowEditPlot(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleUpdatePlot}>
+              {[
+                { label: 'Plot Name *', key: 'plotName', placeholder: 'e.g. Sy No 45, Shadnagar', required: true },
+                { label: 'Location / Address', key: 'location', placeholder: 'Village, Mandal, District' },
+                { label: 'Area', key: 'area', placeholder: 'e.g. 300 sq yards' },
+                { label: 'Total Cost (₹) *', key: 'totalCost', type: 'number', placeholder: '12000000', required: true },
+                { label: 'Registration Date', key: 'registrationDate', type: 'date' },
+                { label: 'Notes', key: 'notes', placeholder: 'Any additional info' }
+              ].map(f => (
+                <div key={f.key} style={{ marginBottom: '1rem' }}>
+                  <label style={labelStyle}>{f.label}</label>
+                  <input type={f.type || 'text'} required={f.required} placeholder={f.placeholder}
+                    value={plotForm[f.key]} onChange={e => setPlotForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    style={inputStyle} />
+                </div>
+              ))}
+              <div style={{ margin: '1rem 0 0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Users size={16} /> Partners</div>
+              {plotForm.partners.map((partner, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'end' }}>
+                  <div>
+                    <label style={labelStyle}>Partner {i + 1} Name *</label>
+                    <input required value={partner.name} placeholder={i === 0 ? 'Your name' : "Partner's name"}
+                      onChange={e => { const p = [...plotForm.partners]; p[i].name = e.target.value; setPlotForm(f => ({ ...f, partners: p })); }}
+                      style={inputStyle} />
+                  </div>
+                  <div style={{ minWidth: '90px' }}>
+                    <label style={labelStyle}>Share %</label>
+                    <input type="number" min={0} max={100} value={partner.sharePercent}
+                      onChange={e => { const p = [...plotForm.partners]; p[i].sharePercent = Number(e.target.value); setPlotForm(f => ({ ...f, partners: p })); }}
+                      style={inputStyle} />
+                  </div>
+                </div>
+              ))}
+              {plotForm.totalCost && (
+                <div style={{ background: 'rgba(99,102,241,0.08)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.8rem' }}>
+                  {plotForm.partners.map((p, i) => (
+                    <div key={i} style={{ color: 'var(--text-muted)' }}>
+                      <strong>{p.name || `Partner ${i + 1}`}</strong>: {fmt(Math.round(Number(plotForm.totalCost) * p.sharePercent / 100))}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowEditPlot(false)} style={{ padding: '0.6rem 1.2rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>Cancel</button>
+                <button type="submit" style={{ padding: '0.6rem 1.5rem', background: 'var(--bg-sidebar)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Save Changes</button>
               </div>
             </form>
           </div>
