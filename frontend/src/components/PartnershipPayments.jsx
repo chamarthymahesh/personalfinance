@@ -51,8 +51,9 @@ export default function PlotPurchase() {
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [showAddAgent, setShowAddAgent] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showAddSale, setShowAddSale] = useState(false);
   const [expandedPartner, setExpandedPartner] = useState(null);
-  const [activeSection, setActiveSection] = useState('payments'); // payments | agents | expenses
+  const [activeSection, setActiveSection] = useState('payments'); // payments | agents | expenses | sales | report
   const [error, setError] = useState('');
 
   const [plotForm, setPlotForm] = useState({
@@ -77,6 +78,13 @@ export default function PlotPurchase() {
     notes: ''
   });
   const [expenseFile, setExpenseFile] = useState(null);
+
+  const [saleForm, setSaleForm] = useState({
+    buyerName: '', saleDate: new Date().toISOString().split('T')[0],
+    yardsSold: '', salePricePerYard: '', notes: '',
+    saleCharges: [{ description: '', amount: '' }]
+  });
+  const [saleFile, setSaleFile] = useState(null);
 
   // Fetch plots
   const fetchPlots = async () => {
@@ -232,6 +240,37 @@ export default function PlotPurchase() {
       await axios.delete(`${API_URL}/plots/${selectedPlot._id}/expenses/${expenseId}`);
       await fetchPlots();
     } catch { setError('Failed to delete expense'); }
+  };
+
+  // ----- Sales -----
+  const handleAddSale = async (e) => {
+    e.preventDefault();
+    try {
+      const fd = new FormData();
+      fd.append('buyerName', saleForm.buyerName);
+      fd.append('saleDate', saleForm.saleDate);
+      fd.append('yardsSold', saleForm.yardsSold);
+      fd.append('salePricePerYard', saleForm.salePricePerYard);
+      fd.append('notes', saleForm.notes);
+      const validCharges = saleForm.saleCharges.filter(c => c.description && c.amount);
+      fd.append('saleCharges', JSON.stringify(validCharges));
+      if (saleFile) fd.append('proofFile', saleFile);
+      await axios.post(`${API_URL}/plots/${selectedPlot._id}/sales`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await fetchPlots();
+      setShowAddSale(false);
+      setSaleFile(null);
+      setSaleForm({ buyerName: '', saleDate: new Date().toISOString().split('T')[0], yardsSold: '', salePricePerYard: '', notes: '', saleCharges: [{ description: '', amount: '' }] });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to add sale');
+    }
+  };
+
+  const handleDeleteSale = async (saleId) => {
+    if (!window.confirm('Delete this sale record?')) return;
+    try {
+      await axios.delete(`${API_URL}/plots/${selectedPlot._id}/sales/${saleId}`);
+      await fetchPlots();
+    } catch { setError('Failed to delete sale'); }
   };
 
   const proofLink = (item) => {
@@ -397,11 +436,13 @@ export default function PlotPurchase() {
               </div>
 
               {/* Section tabs */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                 {[
                   { key: 'payments', label: '💰 Payments', count: selectedPlot.payments.length },
                   { key: 'agents', label: '🤝 Commission Agents', count: (selectedPlot.commissionAgents || []).length },
-                  { key: 'expenses', label: '📊 Other Expenses', count: (selectedPlot.otherExpenses || []).length }
+                  { key: 'expenses', label: '📊 Other Expenses', count: (selectedPlot.otherExpenses || []).length },
+                  { key: 'sales', label: '🏷️ Sales', count: (selectedPlot.sales || []).length },
+                  { key: 'report', label: '📈 Profit / Loss Report', count: null }
                 ].map(s => (
                   <button key={s.key} onClick={() => setActiveSection(s.key)}
                     style={{ padding: '0.5rem 1.25rem', borderRadius: '8px', border: '1px solid', borderColor: activeSection === s.key ? 'var(--accent-primary)' : 'var(--border-color)', background: activeSection === s.key ? 'rgba(99,102,241,0.1)' : 'transparent', color: activeSection === s.key ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontWeight: 500, fontSize: '0.875rem' }}>
@@ -556,12 +597,210 @@ export default function PlotPurchase() {
                 </div>
               )}
 
+            {/* Sales Section */}
+            {activeSection === 'sales' && (
+              <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Sale Records</h3>
+                  <button onClick={() => setShowAddSale(true)}
+                    style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.5rem 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                    <Plus size={14} /> Record Sale
+                  </button>
+                </div>
+                {(selectedPlot.sales || []).length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>No sales recorded yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {[...selectedPlot.sales].sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate)).map(sale => (
+                      <div key={sale._id} style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '1.25rem', position: 'relative' }}>
+                        <button onClick={() => handleDeleteSale(sale._id)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c' }}><Trash2 size={14} /></button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingRight: '2rem' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '1rem' }}>{sale.buyerName || 'Buyer'}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Date: {new Date(sale.saleDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{sale.yardsSold} yards @ {fmt(sale.salePricePerYard)}/yard</div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '1.5rem', textAlign: 'right', flexWrap: 'wrap' }}>
+                            <div><div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Gross Sale</div><div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{fmt(sale.totalSaleAmount)}</div></div>
+                            <div><div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Charges</div><div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#b91c1c' }}>- {fmt(sale.totalSaleCharges)}</div></div>
+                            <div><div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Net Sale</div><div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#15803d' }}>{fmt(sale.netSaleAmount)}</div></div>
+                          </div>
+                        </div>
+                        {(sale.saleCharges || []).length > 0 && (
+                          <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            <strong>Charges:</strong>{' '}
+                            {sale.saleCharges.map((c, i) => <span key={i}>{c.description}: {fmt(c.amount)}{i < sale.saleCharges.length - 1 ? ' | ' : ''}</span>)}
+                          </div>
+                        )}
+                        {sale.notes && <div style={{ marginTop: '0.3rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Note: {sale.notes}</div>}
+                        {sale.proofFile && <a href={`${SERVER_URL}${sale.proofFile}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.8rem', marginTop: '0.3rem' }}><Eye size={12} /> View Proof</a>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Profit / Loss Report */}
+            {activeSection === 'report' && (() => {
+              const totalBuyCost = selectedPlot.totalCost || 0;
+              const totalBuyCommission = (selectedPlot.commissionAgents || []).reduce((s, a) => s + a.commissionAmount, 0);
+              const totalBuyExpenses = (selectedPlot.otherExpenses || []).reduce((s, e) => s + e.amount, 0);
+              const totalCostOfOwnership = totalBuyCost + totalBuyCommission + totalBuyExpenses;
+              const totalSaleGross = (selectedPlot.sales || []).reduce((s, sl) => s + sl.totalSaleAmount, 0);
+              const totalSaleChargesAmt = (selectedPlot.sales || []).reduce((s, sl) => s + (sl.totalSaleCharges || 0), 0);
+              const totalNetSale = (selectedPlot.sales || []).reduce((s, sl) => s + (sl.netSaleAmount || 0), 0);
+              const totalYardsSold = (selectedPlot.sales || []).reduce((s, sl) => s + sl.yardsSold, 0);
+              const regYards = selectedPlot.registeredYards || 0;
+              const costPerYard = regYards ? totalCostOfOwnership / regYards : 0;
+              const profit = totalNetSale - (costPerYard * totalYardsSold);
+              const isProfit = profit >= 0;
+              const roiPct = totalCostOfOwnership ? ((profit / totalCostOfOwnership) * 100).toFixed(1) : 0;
+              const statCard = (label, val, color) => (
+                <div style={{ background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border-color)', padding: '1rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>{label}</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: color || 'var(--text-main)' }}>{val}</div>
+                </div>
+              );
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                  <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem' }}>
+                    <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--text-muted)' }}>Purchase Cost Breakdown</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                      {statCard('Plot Cost', fmt(totalBuyCost))}
+                      {statCard('Buy Commission', fmt(totalBuyCommission), '#7e22ce')}
+                      {statCard('Other Expenses', fmt(totalBuyExpenses), '#b45309')}
+                      {statCard('Total Cost of Ownership', fmt(totalCostOfOwnership), '#b91c1c')}
+                      {statCard('Cost Per Yard', regYards ? fmt(Math.round(costPerYard)) : '—', '#b91c1c')}
+                    </div>
+                  </div>
+                  <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem' }}>
+                    <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--text-muted)' }}>Sale Breakdown</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                      {statCard('Yards Sold', `${totalYardsSold} / ${regYards}`)}
+                      {statCard('Gross Sale Amount', fmt(totalSaleGross), '#15803d')}
+                      {statCard('Sale Charges', fmt(totalSaleChargesAmt), '#b91c1c')}
+                      {statCard('Net Sale Amount', fmt(totalNetSale), '#15803d')}
+                    </div>
+                  </div>
+                  <div style={{ background: isProfit ? 'rgba(21,128,61,0.1)' : 'rgba(185,28,28,0.1)', borderRadius: '12px', border: `2px solid ${isProfit ? '#15803d' : '#b91c1c'}`, padding: '1.5rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Net Profit / Loss on Sold Yards</div>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 800, color: isProfit ? '#15803d' : '#b91c1c' }}>{isProfit ? '▲' : '▼'} {fmt(Math.abs(profit))}</div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>ROI: <strong style={{ color: isProfit ? '#15803d' : '#b91c1c' }}>{isProfit ? '+' : ''}{roiPct}%</strong></div>
+                    {totalYardsSold < regYards && (
+                      <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.05)', padding: '0.5rem', borderRadius: '6px' }}>
+                        {regYards - totalYardsSold} yards remaining — report will update as you record more sales
+                      </div>
+                    )}
+                  </div>
+                  {(selectedPlot.sales || []).length > 0 && (
+                    <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem' }}>
+                      <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--text-muted)' }}>Sale-wise Detail</h3>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead><tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                            {['Date','Buyer','Yards','Price/Yd','Gross','Charges','Net','Profit/Loss'].map(h => <th key={h} style={{ padding: '0.6rem 0.75rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>)}
+                          </tr></thead>
+                          <tbody>
+                            {[...selectedPlot.sales].sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate)).map(sale => {
+                              const sp = (sale.netSaleAmount || 0) - (costPerYard * sale.yardsSold);
+                              return (<tr key={sale._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <td style={{ padding: '0.75rem', whiteSpace: 'nowrap' }}>{new Date(sale.saleDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                <td style={{ padding: '0.75rem' }}>{sale.buyerName || '—'}</td>
+                                <td style={{ padding: '0.75rem' }}>{sale.yardsSold}</td>
+                                <td style={{ padding: '0.75rem' }}>{fmt(sale.salePricePerYard)}</td>
+                                <td style={{ padding: '0.75rem', fontWeight: 600 }}>{fmt(sale.totalSaleAmount)}</td>
+                                <td style={{ padding: '0.75rem', color: '#b91c1c' }}>{fmt(sale.totalSaleCharges)}</td>
+                                <td style={{ padding: '0.75rem', color: '#15803d', fontWeight: 600 }}>{fmt(sale.netSaleAmount)}</td>
+                                <td style={{ padding: '0.75rem', fontWeight: 700, color: sp >= 0 ? '#15803d' : '#b91c1c' }}>{sp >= 0 ? '+' : ''}{fmt(sp)}</td>
+                              </tr>);
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             </>
           );
         })()
       )}
 
       {/* ---------- Modals ---------- */}
+
+      {/* Add Sale Modal */}
+      {showAddSale && selectedPlot && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Record Sale</h2>
+              <button onClick={() => setShowAddSale(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAddSale}>
+              {[
+                { label: 'Buyer Name', key: 'buyerName', placeholder: 'Buyer full name' },
+                { label: 'Sale Date *', key: 'saleDate', type: 'date', required: true },
+                { label: 'Yards Sold *', key: 'yardsSold', type: 'number', placeholder: 'e.g. 100', required: true },
+                { label: 'Sale Price Per Yard (\u20b9) *', key: 'salePricePerYard', type: 'number', placeholder: 'e.g. 35000', required: true },
+                { label: 'Notes', key: 'notes', placeholder: 'Any remarks' }
+              ].map(f => (
+                <div key={f.key} style={{ marginBottom: '1rem' }}>
+                  <label style={labelStyle}>{f.label}</label>
+                  <input type={f.type || 'text'} required={f.required} placeholder={f.placeholder}
+                    value={saleForm[f.key]} onChange={e => setSaleForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    style={inputStyle} />
+                </div>
+              ))}
+              {saleForm.yardsSold && saleForm.salePricePerYard && (
+                <div style={{ background: 'rgba(21,128,61,0.08)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                  Gross Sale: <strong>{fmt(Number(saleForm.yardsSold) * Number(saleForm.salePricePerYard))}</strong>
+                </div>
+              )}
+              <div style={{ margin: '1rem 0 0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Sale Charges (Commission, Legal, etc.)</div>
+              {saleForm.saleCharges.map((ch, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'end' }}>
+                  <div>
+                    <label style={labelStyle}>Description</label>
+                    <input placeholder="e.g. Agent Commission" value={ch.description}
+                      onChange={e => { const c = [...saleForm.saleCharges]; c[i].description = e.target.value; setSaleForm(f => ({ ...f, saleCharges: c })); }}
+                      style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Amount (\u20b9)</label>
+                    <input type="number" placeholder="0" value={ch.amount}
+                      onChange={e => { const c = [...saleForm.saleCharges]; c[i].amount = e.target.value; setSaleForm(f => ({ ...f, saleCharges: c })); }}
+                      style={inputStyle} />
+                  </div>
+                  {saleForm.saleCharges.length > 1 && (
+                    <button type="button" onClick={() => setSaleForm(f => ({ ...f, saleCharges: f.saleCharges.filter((_, idx) => idx !== i) }))}
+                      style={{ padding: '0.5rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={() => setSaleForm(f => ({ ...f, saleCharges: [...f.saleCharges, { description: '', amount: '' }] }))}
+                style={{ background: 'none', border: '1px dashed var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1rem' }}>
+                + Add Charge
+              </button>
+              {saleForm.yardsSold && saleForm.salePricePerYard && (
+                <div style={{ background: 'rgba(99,102,241,0.08)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                  Total Charges: <strong>{fmt(saleForm.saleCharges.reduce((s, c) => s + (Number(c.amount) || 0), 0))}</strong>{' | '}
+                  Net Sale: <strong style={{ color: '#15803d' }}>{fmt((Number(saleForm.yardsSold) * Number(saleForm.salePricePerYard)) - saleForm.saleCharges.reduce((s, c) => s + (Number(c.amount) || 0), 0))}</strong>
+                </div>
+              )}
+              <FileUploadField label="Payment Proof (optional)" value={saleFile} onChange={setSaleFile} existingFile={null} />
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowAddSale(false)} style={{ padding: '0.6rem 1.2rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>Cancel</button>
+                <button type="submit" style={{ padding: '0.6rem 1.5rem', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Record Sale</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* New Plot Modal */}
       {showNewPlot && (

@@ -48,6 +48,27 @@ const PartnerSchema = new mongoose.Schema({
   shareAmount: { type: Number, required: true }
 });
 
+// Sale commission / other charge on sale
+const SaleChargeSchema = new mongoose.Schema({
+  description: { type: String, required: true }, // e.g. 'Agent Commission', 'Legal Charge'
+  amount: { type: Number, required: true },
+  notes: { type: String, default: '' }
+}, { timestamps: true });
+
+// Sale record
+const SaleSchema = new mongoose.Schema({
+  buyerName: { type: String, default: '' },
+  saleDate: { type: Date, required: true },
+  yardsSold: { type: Number, required: true },
+  salePricePerYard: { type: Number, required: true },
+  totalSaleAmount: { type: Number, required: true },
+  saleCharges: [SaleChargeSchema],
+  totalSaleCharges: { type: Number, default: 0 },
+  netSaleAmount: { type: Number, default: 0 },
+  notes: { type: String, default: '' },
+  proofFile: { type: String, default: '' }
+}, { timestamps: true });
+
 // The main plot document
 const PlotPurchaseSchema = new mongoose.Schema({
   plotName: { type: String, required: true },
@@ -70,7 +91,8 @@ const PlotPurchaseSchema = new mongoose.Schema({
   partners: [PartnerSchema],
   payments: [PaymentSchema],
   commissionAgents: [CommissionAgentSchema],
-  otherExpenses: [OtherExpenseSchema]
+  otherExpenses: [OtherExpenseSchema],
+  sales: [SaleSchema]
 }, { timestamps: true });
 
 module.exports = mongoose.model('PlotPurchase', PlotPurchaseSchema);

@@ -117,6 +117,43 @@ router.post('/:id/document', upload.single('plotDocumentFile'), async (req, res)
   }
 });
 
+// ─── SALES ──────────────────────────────────────────────────────────────────
+
+// POST add a new sale
+router.post('/:id/sales', upload.single('proofFile'), async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    const { buyerName, saleDate, yardsSold, salePricePerYard, saleCharges, notes } = req.body;
+    const yards = Number(yardsSold);
+    const pricePerYard = Number(salePricePerYard);
+    const totalSaleAmount = yards * pricePerYard;
+    let parsedCharges = [];
+    try { parsedCharges = JSON.parse(saleCharges || '[]'); } catch { parsedCharges = []; }
+    const totalSaleCharges = parsedCharges.reduce((s, c) => s + Number(c.amount || 0), 0);
+    const netSaleAmount = totalSaleAmount - totalSaleCharges;
+    const proofFile = req.file ? `/uploads/plots/${req.file.filename}` : '';
+    plot.sales.push({ buyerName, saleDate, yardsSold: yards, salePricePerYard: pricePerYard, totalSaleAmount, saleCharges: parsedCharges, totalSaleCharges, netSaleAmount, notes, proofFile });
+    await plot.save();
+    res.status(201).json(plot);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE a sale
+router.delete('/:id/sales/:saleId', async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    plot.sales = plot.sales.filter(s => s._id.toString() !== req.params.saleId);
+    await plot.save();
+    res.json(plot);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // ─── PAYMENTS ───────────────────────────────────────────────────────────────
 
 // POST add payment (with optional file upload)
