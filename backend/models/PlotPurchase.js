@@ -52,10 +52,18 @@ const PartnerSchema = new mongoose.Schema({
 const PlotPurchaseSchema = new mongoose.Schema({
   plotName: { type: String, required: true },
   location: { type: String, default: '' },
-  area: { type: String, default: '' },
+  area: { type: String, default: '' }, // Legacy text field
+  totalYards: { type: Number, default: 0 },
+  registeredYards: { type: Number, default: 0 },
+  pricePerYard: { type: Number, default: 0 },
   totalCost: { type: Number, required: true },
   registrationDate: { type: Date },
   notes: { type: String, default: '' },
+  salesTracking: {
+    yardsSold: { type: Number, default: 0 },
+    salePricePerYard: { type: Number, default: 0 },
+    profit: { type: Number, default: 0 }
+  },
   partners: [PartnerSchema],
   payments: [PaymentSchema],
   commissionAgents: [CommissionAgentSchema],

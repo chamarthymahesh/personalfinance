@@ -56,8 +56,8 @@ export default function PlotPurchase() {
   const [error, setError] = useState('');
 
   const [plotForm, setPlotForm] = useState({
-    plotName: '', location: '', area: '', totalCost: '', registrationDate: '', notes: '',
-    partners: [{ name: '', sharePercent: 50 }, { name: '', sharePercent: 50 }]
+    plotName: '', location: '', area: '', totalYards: '', registeredYards: '', pricePerYard: '', totalCost: 0, registrationDate: '', notes: '',
+    partners: [{ name: '', sharePercent: 100 }]
   });
 
   const [paymentForm, setPaymentForm] = useState({
@@ -112,7 +112,7 @@ export default function PlotPurchase() {
       await axios.post(`${API_URL}/plots`, { ...plotForm, totalCost: Number(plotForm.totalCost) });
       await fetchPlots();
       setShowNewPlot(false);
-      setPlotForm({ plotName: '', location: '', area: '', totalCost: '', registrationDate: '', notes: '', partners: [{ name: '', sharePercent: 50 }, { name: '', sharePercent: 50 }] });
+      setPlotForm({ plotName: '', location: '', area: '', totalYards: '', registeredYards: '', pricePerYard: '', totalCost: 0, registrationDate: '', notes: '', partners: [{ name: '', sharePercent: 100 }] });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create plot');
     }
@@ -284,7 +284,7 @@ export default function PlotPurchase() {
             <>
               {/* Plot summary */}
               <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
-                <button onClick={() => { setPlotForm({ plotName: selectedPlot.plotName, location: selectedPlot.location || '', area: selectedPlot.area || '', totalCost: selectedPlot.totalCost, registrationDate: selectedPlot.registrationDate ? selectedPlot.registrationDate.split('T')[0] : '', notes: selectedPlot.notes || '', partners: selectedPlot.partners.map(p => ({ name: p.name, sharePercent: p.sharePercent })) }); setShowEditPlot(true); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                <button onClick={() => { setPlotForm({ plotName: selectedPlot.plotName, location: selectedPlot.location || '', area: selectedPlot.area || '', totalYards: selectedPlot.totalYards || '', registeredYards: selectedPlot.registeredYards || '', pricePerYard: selectedPlot.pricePerYard || '', totalCost: selectedPlot.totalCost, registrationDate: selectedPlot.registrationDate ? selectedPlot.registrationDate.split('T')[0] : '', notes: selectedPlot.notes || '', partners: selectedPlot.partners.map(p => ({ name: p.name, sharePercent: p.sharePercent })) }); setShowEditPlot(true); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                   Edit
                 </button>
                 <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', paddingRight: '4rem' }}>
@@ -555,33 +555,58 @@ export default function PlotPurchase() {
               {[
                 { label: 'Plot Name *', key: 'plotName', placeholder: 'e.g. Sy No 45, Shadnagar', required: true },
                 { label: 'Location / Address', key: 'location', placeholder: 'Village, Mandal, District' },
-                { label: 'Area', key: 'area', placeholder: 'e.g. 300 sq yards' },
-                { label: 'Total Cost (₹) *', key: 'totalCost', type: 'number', placeholder: '12000000', required: true },
+                { label: 'Total Yards', key: 'totalYards', type: 'number', placeholder: 'e.g. 500' },
+                { label: 'Registered Yards *', key: 'registeredYards', type: 'number', placeholder: 'e.g. 500', required: true },
+                { label: 'Price Per Yard (₹) *', key: 'pricePerYard', type: 'number', placeholder: 'e.g. 24000', required: true },
                 { label: 'Registration Date', key: 'registrationDate', type: 'date' },
                 { label: 'Notes', key: 'notes', placeholder: 'Any additional info' }
               ].map(f => (
                 <div key={f.key} style={{ marginBottom: '1rem' }}>
                   <label style={labelStyle}>{f.label}</label>
                   <input type={f.type || 'text'} required={f.required} placeholder={f.placeholder}
-                    value={plotForm[f.key]} onChange={e => setPlotForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    value={plotForm[f.key]} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      setPlotForm(p => {
+                        const next = { ...p, [f.key]: val };
+                        if (f.key === 'registeredYards' || f.key === 'pricePerYard') {
+                          const ry = parseFloat(f.key === 'registeredYards' ? val : next.registeredYards) || 0;
+                          const ppy = parseFloat(f.key === 'pricePerYard' ? val : next.pricePerYard) || 0;
+                          next.totalCost = ry * ppy;
+                        }
+                        return next;
+                      });
+                    }}
                     style={inputStyle} />
                 </div>
               ))}
-              <div style={{ margin: '1rem 0 0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Users size={16} /> Partners</div>
+              <div style={{ marginBottom: '1rem', background: 'rgba(99,102,241,0.08)', borderRadius: '8px', padding: '0.75rem' }}>
+                <label style={labelStyle}>Calculated Total Cost (₹)</label>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{fmt(plotForm.totalCost)}</div>
+              </div>
+              <div style={{ margin: '1rem 0 0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Users size={16} /> Partners</div>
+                {plotForm.partners.length < 3 && (
+                  <button type="button" onClick={() => setPlotForm(f => ({ ...f, partners: [...f.partners, { name: '', sharePercent: 0 }] }))} style={{ background: 'none', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Partner</button>
+                )}
+              </div>
               {plotForm.partners.map((partner, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'end' }}>
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px auto', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'end' }}>
                   <div>
                     <label style={labelStyle}>Partner {i + 1} Name *</label>
                     <input required value={partner.name} placeholder={i === 0 ? 'Your name' : "Partner's name"}
                       onChange={e => { const p = [...plotForm.partners]; p[i].name = e.target.value; setPlotForm(f => ({ ...f, partners: p })); }}
                       style={inputStyle} />
                   </div>
-                  <div style={{ minWidth: '90px' }}>
+                  <div>
                     <label style={labelStyle}>Share %</label>
                     <input type="number" min={0} max={100} value={partner.sharePercent}
                       onChange={e => { const p = [...plotForm.partners]; p[i].sharePercent = Number(e.target.value); setPlotForm(f => ({ ...f, partners: p })); }}
                       style={inputStyle} />
                   </div>
+                  {plotForm.partners.length > 1 && (
+                    <button type="button" onClick={() => setPlotForm(f => ({ ...f, partners: f.partners.filter((_, idx) => idx !== i) }))} style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                  )}
                 </div>
               ))}
               {plotForm.totalCost && (
@@ -614,33 +639,58 @@ export default function PlotPurchase() {
               {[
                 { label: 'Plot Name *', key: 'plotName', placeholder: 'e.g. Sy No 45, Shadnagar', required: true },
                 { label: 'Location / Address', key: 'location', placeholder: 'Village, Mandal, District' },
-                { label: 'Area', key: 'area', placeholder: 'e.g. 300 sq yards' },
-                { label: 'Total Cost (₹) *', key: 'totalCost', type: 'number', placeholder: '12000000', required: true },
+                { label: 'Total Yards', key: 'totalYards', type: 'number', placeholder: 'e.g. 500' },
+                { label: 'Registered Yards *', key: 'registeredYards', type: 'number', placeholder: 'e.g. 500', required: true },
+                { label: 'Price Per Yard (₹) *', key: 'pricePerYard', type: 'number', placeholder: 'e.g. 24000', required: true },
                 { label: 'Registration Date', key: 'registrationDate', type: 'date' },
                 { label: 'Notes', key: 'notes', placeholder: 'Any additional info' }
               ].map(f => (
                 <div key={f.key} style={{ marginBottom: '1rem' }}>
                   <label style={labelStyle}>{f.label}</label>
                   <input type={f.type || 'text'} required={f.required} placeholder={f.placeholder}
-                    value={plotForm[f.key]} onChange={e => setPlotForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    value={plotForm[f.key]} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      setPlotForm(p => {
+                        const next = { ...p, [f.key]: val };
+                        if (f.key === 'registeredYards' || f.key === 'pricePerYard') {
+                          const ry = parseFloat(f.key === 'registeredYards' ? val : next.registeredYards) || 0;
+                          const ppy = parseFloat(f.key === 'pricePerYard' ? val : next.pricePerYard) || 0;
+                          next.totalCost = ry * ppy;
+                        }
+                        return next;
+                      });
+                    }}
                     style={inputStyle} />
                 </div>
               ))}
-              <div style={{ margin: '1rem 0 0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Users size={16} /> Partners</div>
+              <div style={{ marginBottom: '1rem', background: 'rgba(99,102,241,0.08)', borderRadius: '8px', padding: '0.75rem' }}>
+                <label style={labelStyle}>Calculated Total Cost (₹)</label>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{fmt(plotForm.totalCost)}</div>
+              </div>
+              <div style={{ margin: '1rem 0 0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Users size={16} /> Partners</div>
+                {plotForm.partners.length < 3 && (
+                  <button type="button" onClick={() => setPlotForm(f => ({ ...f, partners: [...f.partners, { name: '', sharePercent: 0 }] }))} style={{ background: 'none', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Partner</button>
+                )}
+              </div>
               {plotForm.partners.map((partner, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'end' }}>
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px auto', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'end' }}>
                   <div>
                     <label style={labelStyle}>Partner {i + 1} Name *</label>
                     <input required value={partner.name} placeholder={i === 0 ? 'Your name' : "Partner's name"}
                       onChange={e => { const p = [...plotForm.partners]; p[i].name = e.target.value; setPlotForm(f => ({ ...f, partners: p })); }}
                       style={inputStyle} />
                   </div>
-                  <div style={{ minWidth: '90px' }}>
+                  <div>
                     <label style={labelStyle}>Share %</label>
                     <input type="number" min={0} max={100} value={partner.sharePercent}
                       onChange={e => { const p = [...plotForm.partners]; p[i].sharePercent = Number(e.target.value); setPlotForm(f => ({ ...f, partners: p })); }}
                       style={inputStyle} />
                   </div>
+                  {plotForm.partners.length > 1 && (
+                    <button type="button" onClick={() => setPlotForm(f => ({ ...f, partners: f.partners.filter((_, idx) => idx !== i) }))} style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                  )}
                 </div>
               ))}
               {plotForm.totalCost && (
