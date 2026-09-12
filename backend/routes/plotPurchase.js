@@ -48,13 +48,13 @@ router.get('/:id', async (req, res) => {
 // POST create a new plot
 router.post('/', async (req, res) => {
   try {
-    const { plotName, location, area, totalCost, registrationDate, notes, partners } = req.body;
+    const { plotName, location, area, totalYards, registeredYards, pricePerYard, totalCost, purchaseDate, registrationDate, notes, partners } = req.body;
     const computedPartners = (partners || []).map(p => ({
       name: p.name,
       sharePercent: p.sharePercent,
       shareAmount: Math.round((totalCost * p.sharePercent) / 100)
     }));
-    const plot = new PlotPurchase({ plotName, location, area, totalCost, registrationDate, notes, partners: computedPartners, payments: [], commissionAgents: [] });
+    const plot = new PlotPurchase({ plotName, location, area, totalYards, registeredYards, pricePerYard, totalCost, purchaseDate, registrationDate, notes, partners: computedPartners, payments: [], commissionAgents: [] });
     await plot.save();
     res.status(201).json(plot);
   } catch (err) {
@@ -65,13 +65,17 @@ router.post('/', async (req, res) => {
 // PUT update plot details
 router.put('/:id', async (req, res) => {
   try {
-    const { plotName, location, area, totalCost, registrationDate, notes, partners } = req.body;
+    const { plotName, location, area, totalYards, registeredYards, pricePerYard, totalCost, purchaseDate, registrationDate, notes, partners } = req.body;
     const plot = await PlotPurchase.findById(req.params.id);
     if (!plot) return res.status(404).json({ message: 'Plot not found' });
     if (plotName) plot.plotName = plotName;
     if (location !== undefined) plot.location = location;
     if (area !== undefined) plot.area = area;
+    if (totalYards !== undefined) plot.totalYards = totalYards;
+    if (registeredYards !== undefined) plot.registeredYards = registeredYards;
+    if (pricePerYard !== undefined) plot.pricePerYard = pricePerYard;
     if (totalCost) plot.totalCost = totalCost;
+    if (purchaseDate !== undefined) plot.purchaseDate = purchaseDate;
     if (registrationDate !== undefined) plot.registrationDate = registrationDate;
     if (notes !== undefined) plot.notes = notes;
     if (partners) {
@@ -95,6 +99,21 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Plot deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// POST upload plot document
+router.post('/:id/document', upload.single('plotDocumentFile'), async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    if (req.file) {
+      plot.plotDocumentFile = `/uploads/plots/${req.file.filename}`;
+    }
+    await plot.save();
+    res.json(plot);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 

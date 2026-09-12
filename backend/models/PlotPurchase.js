@@ -57,7 +57,10 @@ const PlotPurchaseSchema = new mongoose.Schema({
   registeredYards: { type: Number, default: 0 },
   pricePerYard: { type: Number, default: 0 },
   totalCost: { type: Number, required: true },
+  purchaseDate: { type: Date },
   registrationDate: { type: Date },
+  plotDocumentFile: { type: String, default: '' },
+  plotDocumentUrl: { type: String, default: '' },
   notes: { type: String, default: '' },
   salesTracking: {
     yardsSold: { type: Number, default: 0 },

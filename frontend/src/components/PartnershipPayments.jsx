@@ -56,7 +56,7 @@ export default function PlotPurchase() {
   const [error, setError] = useState('');
 
   const [plotForm, setPlotForm] = useState({
-    plotName: '', location: '', area: '', totalYards: '', registeredYards: '', pricePerYard: '', totalCost: 0, registrationDate: '', notes: '',
+    plotName: '', location: '', area: '', totalYards: '', registeredYards: '', pricePerYard: '', totalCost: 0, purchaseDate: '', registrationDate: '', notes: '',
     partners: [{ name: '', sharePercent: 100 }]
   });
 
@@ -112,7 +112,7 @@ export default function PlotPurchase() {
       await axios.post(`${API_URL}/plots`, { ...plotForm, totalCost: Number(plotForm.totalCost) });
       await fetchPlots();
       setShowNewPlot(false);
-      setPlotForm({ plotName: '', location: '', area: '', totalYards: '', registeredYards: '', pricePerYard: '', totalCost: 0, registrationDate: '', notes: '', partners: [{ name: '', sharePercent: 100 }] });
+      setPlotForm({ plotName: '', location: '', area: '', totalYards: '', registeredYards: '', pricePerYard: '', totalCost: 0, purchaseDate: '', registrationDate: '', notes: '', partners: [{ name: '', sharePercent: 100 }] });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create plot');
     }
@@ -126,6 +126,18 @@ export default function PlotPurchase() {
       setShowEditPlot(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update plot');
+    }
+  };
+
+  const handleUploadPlotDocument = async (file) => {
+    if (!file) return;
+    try {
+      const fd = new FormData();
+      fd.append('plotDocumentFile', file);
+      await axios.post(`${API_URL}/plots/${selectedPlot._id}/document`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await fetchPlots();
+    } catch (err) {
+      setError('Failed to upload plot document');
     }
   };
 
@@ -284,7 +296,7 @@ export default function PlotPurchase() {
             <>
               {/* Plot summary */}
               <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
-                <button onClick={() => { setPlotForm({ plotName: selectedPlot.plotName, location: selectedPlot.location || '', area: selectedPlot.area || '', totalYards: selectedPlot.totalYards || '', registeredYards: selectedPlot.registeredYards || '', pricePerYard: selectedPlot.pricePerYard || '', totalCost: selectedPlot.totalCost, registrationDate: selectedPlot.registrationDate ? selectedPlot.registrationDate.split('T')[0] : '', notes: selectedPlot.notes || '', partners: selectedPlot.partners.map(p => ({ name: p.name, sharePercent: p.sharePercent })) }); setShowEditPlot(true); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                <button onClick={() => { setPlotForm({ plotName: selectedPlot.plotName, location: selectedPlot.location || '', area: selectedPlot.area || '', totalYards: selectedPlot.totalYards || '', registeredYards: selectedPlot.registeredYards || '', pricePerYard: selectedPlot.pricePerYard || '', totalCost: selectedPlot.totalCost, purchaseDate: selectedPlot.purchaseDate ? selectedPlot.purchaseDate.split('T')[0] : '', registrationDate: selectedPlot.registrationDate ? selectedPlot.registrationDate.split('T')[0] : '', notes: selectedPlot.notes || '', partners: selectedPlot.partners.map(p => ({ name: p.name, sharePercent: p.sharePercent })) }); setShowEditPlot(true); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                   Edit
                 </button>
                 <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', paddingRight: '4rem' }}>
@@ -295,6 +307,14 @@ export default function PlotPurchase() {
                     </div>
                     {selectedPlot.location && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{selectedPlot.location}</div>}
                     {selectedPlot.area && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>📐 {selectedPlot.area}</div>}
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <FileUploadField 
+                        label="Plot Document (PDF/Image)" 
+                        value={null} 
+                        existingFile={selectedPlot.plotDocumentFile} 
+                        onChange={(file) => handleUploadPlotDocument(file)} 
+                      />
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '2rem', textAlign: 'right', flexWrap: 'wrap' }}>
                     <div>
@@ -558,6 +578,7 @@ export default function PlotPurchase() {
                 { label: 'Total Yards', key: 'totalYards', type: 'number', placeholder: 'e.g. 500' },
                 { label: 'Registered Yards *', key: 'registeredYards', type: 'number', placeholder: 'e.g. 500', required: true },
                 { label: 'Price Per Yard (₹) *', key: 'pricePerYard', type: 'number', placeholder: 'e.g. 24000', required: true },
+                { label: 'Purchase Date', key: 'purchaseDate', type: 'date' },
                 { label: 'Registration Date', key: 'registrationDate', type: 'date' },
                 { label: 'Notes', key: 'notes', placeholder: 'Any additional info' }
               ].map(f => (
@@ -642,6 +663,7 @@ export default function PlotPurchase() {
                 { label: 'Total Yards', key: 'totalYards', type: 'number', placeholder: 'e.g. 500' },
                 { label: 'Registered Yards *', key: 'registeredYards', type: 'number', placeholder: 'e.g. 500', required: true },
                 { label: 'Price Per Yard (₹) *', key: 'pricePerYard', type: 'number', placeholder: 'e.g. 24000', required: true },
+                { label: 'Purchase Date', key: 'purchaseDate', type: 'date' },
                 { label: 'Registration Date', key: 'registrationDate', type: 'date' },
                 { label: 'Notes', key: 'notes', placeholder: 'Any additional info' }
               ].map(f => (
