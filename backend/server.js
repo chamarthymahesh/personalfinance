@@ -70,6 +70,7 @@ const apiRoutes = require('./routes/api');
 const lendingRoutes = require('./routes/lending');
 const investmentsRoutes = require('./routes/investments');
 const handLoansRoutes = require('./routes/hand_loans');
+const lendingBorrowingRoutes = require('./routes/lending_borrowing');
 const partnershipPayments = require('./routes/partnershipPayments');
 app.use('/api/v1/partnership-payments', partnershipPayments);
 const plotPurchaseRoutes = require('./routes/plotPurchase');
@@ -80,6 +81,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/lending-ledger', lendingRoutes);
 app.use('/api/v1/investment-ledger', investmentsRoutes);
 app.use('/api/v1/hand-loans-ledger', handLoansRoutes);
+app.use('/api/v1/lending-borrowing', lendingBorrowingRoutes);
 app.use('/api/v1', apiRoutes);
 
 const PORT = process.env.PORT || 5000;

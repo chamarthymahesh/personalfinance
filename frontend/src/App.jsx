@@ -7,6 +7,7 @@ const SettingsPanel = lazy(() => import('./components/Settings'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const DueAlerts = lazy(() => import('./components/DueAlerts'));
 const PartnershipPayments = lazy(() => import('./components/PartnershipPayments'));
+const LendingBorrowing = lazy(() => import('./components/LendingBorrowing'));
 import './index.css';
 
 import { API_URL } from './config';
@@ -154,6 +155,10 @@ const groupedCategories = useMemo(() => {
         return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Partnership Payments...</div>}>
           <PartnershipPayments />
         </Suspense>;
+      case 'lending-borrowing':
+        return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Lending & Borrowing...</div>}>
+          <LendingBorrowing />
+        </Suspense>;
       case 'settings':
         return <Suspense fallback={<div style={{padding: '2rem'}}>Loading Settings...</div>}><SettingsPanel /></Suspense>;
       default:
@@ -260,6 +265,12 @@ const groupedCategories = useMemo(() => {
               <div className="nav-link-content">
                 <MapPin size={18} />
                 {!isSidebarCollapsed && <span>Plot Purchase</span>}
+              </div>
+            </li>
+            <li className={`nav-link ${activeTab === 'lending-borrowing' ? 'active' : ''}`} onClick={() => setActiveTab('lending-borrowing')} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
+              <div className="nav-link-content">
+                <HandCoins size={18} />
+                {!isSidebarCollapsed && <span>Lending & Borrowing</span>}
               </div>
             </li>
         </ul>
