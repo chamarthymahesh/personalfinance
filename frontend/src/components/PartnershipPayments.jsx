@@ -57,6 +57,7 @@ export default function PlotPurchase() {
   const [expandedSale, setExpandedSale] = useState(null);
   const [activeSaleId, setActiveSaleId] = useState(null);
   const [activeSection, setActiveSection] = useState('payments'); // payments | agents | expenses | sales | report
+  const [activePlotTab, setActivePlotTab] = useState('active'); // active | completed
   const [error, setError] = useState('');
 
   const [plotForm, setPlotForm] = useState({
@@ -349,25 +350,52 @@ export default function PlotPurchase() {
         </div>
       )}
 
-      {/* Plot tabs */}
-      {plots.length > 0 && (
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          {plots.map(p => (
-            <button key={p._id} onClick={() => setSelectedPlot(p)}
-              style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '2px solid', borderColor: selectedPlot?._id === p._id ? 'var(--accent-primary)' : 'var(--border-color)', background: selectedPlot?._id === p._id ? 'rgba(99,102,241,0.1)' : 'transparent', color: selectedPlot?._id === p._id ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontWeight: 500, fontSize: '0.875rem' }}>
-              {p.plotName}
-            </button>
-          ))}
-        </div>
       )}
 
-      {plots.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-card)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
-          <MapPin size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-          <h3 style={{ margin: 0, color: 'var(--text-muted)' }}>No plots yet</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Click "New Plot" to add your first joint plot purchase</p>
-        </div>
-      )}
+      {/* Main Plot Tabs (Active / Completed) */}
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '2px solid var(--border-color)', marginBottom: '1.5rem' }}>
+        <button onClick={() => { setActivePlotTab('active'); setSelectedPlot(null); }}
+          style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, color: activePlotTab === 'active' ? 'var(--accent-primary)' : 'var(--text-muted)', borderBottom: activePlotTab === 'active' ? '2px solid var(--accent-primary)' : 'none', marginBottom: '-2px' }}>
+          Active Plots
+        </button>
+        <button onClick={() => { setActivePlotTab('completed'); setSelectedPlot(null); }}
+          style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, color: activePlotTab === 'completed' ? '#15803d' : 'var(--text-muted)', borderBottom: activePlotTab === 'completed' ? '2px solid #15803d' : 'none', marginBottom: '-2px' }}>
+          Completed Plots
+        </button>
+      </div>
+
+      {/* Plot pills */}
+      {(() => {
+        const isCompletedPlot = (plot) => {
+          if (!plot.registeredYards) return false;
+          const sold = (plot.sales || []).reduce((s, sl) => s + sl.yardsSold, 0);
+          return sold >= plot.registeredYards && sold > 0;
+        };
+        const displayedPlots = plots.filter(p => activePlotTab === 'completed' ? isCompletedPlot(p) : !isCompletedPlot(p));
+        
+        return (
+          <>
+            {displayedPlots.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                {displayedPlots.map(p => (
+                  <button key={p._id} onClick={() => setSelectedPlot(p)}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '2px solid', borderColor: selectedPlot?._id === p._id ? (activePlotTab === 'completed' ? '#15803d' : 'var(--accent-primary)') : 'var(--border-color)', background: selectedPlot?._id === p._id ? (activePlotTab === 'completed' ? 'rgba(21,128,61,0.1)' : 'rgba(99,102,241,0.1)') : 'transparent', color: selectedPlot?._id === p._id ? (activePlotTab === 'completed' ? '#15803d' : 'var(--accent-primary)') : 'var(--text-muted)', cursor: 'pointer', fontWeight: 500, fontSize: '0.875rem' }}>
+                    {p.plotName}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {displayedPlots.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-card)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+                <MapPin size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                <h3 style={{ margin: 0, color: 'var(--text-muted)' }}>No {activePlotTab} plots</h3>
+                {activePlotTab === 'active' && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Click "New Plot" to add your first joint plot purchase</p>}
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {selectedPlot && (
         (() => {
