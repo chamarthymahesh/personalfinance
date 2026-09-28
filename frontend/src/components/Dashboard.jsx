@@ -83,6 +83,8 @@ export default function Dashboard({ onNewEntry }) {
     .filter(e => e.category?.toLowerCase().includes('mutual funds - sip'))
     .reduce((sum, e) => sum + (e.amount || 0), 0);
 
+  const monthlySavings = monthlyIncome - monthlyOutgo;
+
   // Chart Data preparation
   const chartDataMap = {};
   unpaidExpenses.forEach(e => {
@@ -154,7 +156,7 @@ export default function Dashboard({ onNewEntry }) {
       </div>
 
       {/* SUMMARY CARDS */}
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem'}}>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem'}}>
         <div className="dash-card dash-card-outgo">
           <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Monthly outgo (bills, EMIs, premiums)</div>
           <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>₹{monthlyOutgo.toLocaleString('en-IN')}</div>
@@ -170,6 +172,12 @@ export default function Dashboard({ onNewEntry }) {
         <div className="dash-card dash-card-active">
           <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Active records</div>
           <div style={{fontSize: '1.75rem', fontWeight: '600', color: 'var(--text-main)'}}>{activeRecords}</div>
+        </div>
+        <div className="dash-card dash-card-income" style={{ border: '2px solid #22c55e', background: 'rgba(34, 197, 94, 0.05)' }}>
+          <div style={{fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Monthly Savings</div>
+          <div style={{fontSize: '1.75rem', fontWeight: '600', color: monthlySavings >= 0 ? '#15803d' : '#b91c1c'}}>
+            {monthlySavings >= 0 ? '₹' : '-₹'}{Math.abs(monthlySavings).toLocaleString('en-IN')}
+          </div>
         </div>
       </div>
 
