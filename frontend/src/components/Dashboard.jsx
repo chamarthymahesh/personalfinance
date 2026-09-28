@@ -71,17 +71,29 @@ export default function Dashboard({ onNewEntry }) {
     return new Date(e.dueDate) < today;
   });
 
-  const monthlyOutgo = unpaidExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const getNormalizedMonthly = (expense) => {
+    const amt = Number(expense.amount) || 0;
+    if (expense.frequency === 'Yearly') return amt / 12;
+    if (expense.frequency === 'Half-Yearly') return amt / 6;
+    if (expense.frequency === 'Quarterly') return amt / 3;
+    if (expense.frequency === 'Monthly') return amt;
+    return 0; // Exclude One-time (like hand loans) from recurring monthly metrics
+  };
+
+  const monthlyOutgo = unpaidExpenses
+    .filter(e => !e.category?.toLowerCase().includes('income') && !e.category?.toLowerCase().includes('interest given'))
+    .reduce((sum, e) => sum + getNormalizedMonthly(e), 0);
+    
   const activeRecords = unpaidExpenses.length;
 
   // Calculate actual data instead of mock
   const monthlyIncome = unpaidExpenses
     .filter(e => e.category?.toLowerCase().includes('income') || e.category?.toLowerCase().includes('interest given'))
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+    .reduce((sum, e) => sum + getNormalizedMonthly(e), 0);
 
   const monthlyInvestment = unpaidExpenses
     .filter(e => e.category?.toLowerCase().includes('mutual funds - sip'))
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+    .reduce((sum, e) => sum + getNormalizedMonthly(e), 0);
 
   // Chart Data preparation
   const chartDataMap = {};
