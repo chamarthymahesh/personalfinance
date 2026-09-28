@@ -132,18 +132,23 @@ const groupedCategories = useMemo(() => {
     return <Receipt size={18} />;
   };
 
-// New handler for Salary Advance & Postal Insurance entry
+// Handler for Salary Advance & Postal Insurance entry
   const handleSalaryAdvanceEntry = () => {
     const salaryCat = categories.find(c => c.name.toLowerCase().includes('salary')) || categories[0];
     if (salaryCat) {
       setActiveTab(salaryCat._id);
-      // optional: trigger new entry modal after a short delay
       setTimeout(() => window.dispatchEvent(new Event('open-new-entry')), 100);
     }
   };
 
-  // Inside renderContent function, add a new case
-  // (We'll modify the switch block later)
+  // Restored: handleNewEntry used by Dashboard's "+ New Entry" button
+  const handleNewEntry = () => {
+    const targetCat = categories.find(c => c.name === 'Other expenses') || categories[0];
+    if (targetCat) {
+      setActiveTab(targetCat._id);
+      setTimeout(() => window.dispatchEvent(new Event('open-new-entry')), 100);
+    }
+  };
 
 
   const renderContent = () => {
