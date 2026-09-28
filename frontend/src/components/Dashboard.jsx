@@ -75,9 +75,13 @@ export default function Dashboard({ onNewEntry }) {
     const amt = Number(expense.amount) || 0;
     if (expense.frequency === 'Yearly') return amt / 12;
     if (expense.frequency === 'Half-Yearly') return amt / 6;
-    if (expense.frequency === 'Quarterly') return amt / 3;
     if (expense.frequency === 'Monthly') return amt;
-    return 0; // Exclude One-time (like hand loans) from recurring monthly metrics
+    if (expense.frequency === 'One-time') {
+      const cat = expense.category?.toLowerCase() || '';
+      if (cat.includes('salary advance') || cat.includes('postal insurance')) return amt;
+      return 0;
+    }
+    return 0; // Exclude other One-time expenses
   };
 
   const monthlyOutgo = unpaidExpenses
