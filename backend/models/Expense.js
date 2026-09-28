@@ -42,9 +42,9 @@ const ExpenseSchema = new mongoose.Schema({
   paymentProof: {
     type: String
   },
-  documentFile: {
+  documentFiles: [{
     type: String
-  }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Expense', ExpenseSchema);

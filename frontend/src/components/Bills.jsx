@@ -153,7 +153,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         title: '',
         amount: '',
         details: {},
-        documentFile: null
+        documentFiles: []
       });
       return;
     }
@@ -212,7 +212,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         formData.frequency = 'One-time';
       }
 
-      const hasFiles = Object.values(formData.details).some(val => val instanceof File) || !!formData.paymentProofFile || !!formData.documentFile;
+      const hasFiles = Object.values(formData.details).some(val => val instanceof File) || !!formData.paymentProofFile || (formData.documentFiles && formData.documentFiles.length > 0);
 
       let requestData;
       let requestConfig = {};
@@ -227,7 +227,12 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         if (formData.remarks) data.append('remarks', formData.remarks);
         // Attach payment proof if provided
         if (formData.paymentProofFile) data.append('paymentProof', formData.paymentProofFile);
-        if (formData.documentFile) data.append('documentFile', formData.documentFile);
+        
+        if (formData.documentFiles && formData.documentFiles.length > 0) {
+          formData.documentFiles.forEach(file => {
+            data.append('documentFiles', file);
+          });
+        }
 
         const textDetails = {};
         Object.keys(formData.details).forEach(key => {
@@ -253,7 +258,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
       const savedCategory = formData.category;
       setFormData({
-        title: '', category: selectedCategory ? selectedCategory.name : (categories[0]?.name || ''), amount: '', frequency: 'Monthly', dueDate: '', remarks: '', details: {}, paymentProofFile: null, documentFile: null
+        title: '', category: selectedCategory ? selectedCategory.name : (categories[0]?.name || ''), amount: '', frequency: 'Monthly', dueDate: '', remarks: '', details: {}, paymentProofFile: null, documentFiles: []
       });
       setIsNewBiller(true);
       setIsDrawerOpen(false);
@@ -685,11 +690,11 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                     </span>
                   );
                 })}
-                {bill.documentFile && (
-                  <a href={`${SERVER_URL}/${bill.documentFile.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                    📎 View Document
+                {bill.documentFiles && bill.documentFiles.map((doc, idx) => (
+                  <a key={idx} href={`${SERVER_URL}/${doc.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                    📎 View Document {idx > 0 ? idx + 1 : ''}
                   </a>
-                )}
+                ))}
               </div>
             </div>
 
@@ -1119,26 +1124,42 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
               {/* ---- Document Upload (For All Categories) ---- */}
               <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'rgba(59,130,246,0.05)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: '8px' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--accent-primary)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  📎 Attachment / Document (optional)
+                  📎 Attachments / Documents (optional)
                 </label>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                  Upload Policy Document, Invoice, or Bill PDF/Image.
+                  Upload Policy Documents, Invoices, or Bill PDF/Images. You can select multiple files.
                 </div>
                 <input
                   type="file"
+                  multiple
                   accept=".pdf,.png,.jpg,.jpeg,.webp"
-                  onChange={(e) => setFormData({ ...formData, documentFile: e.target.files[0] || null })}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files);
+                    setFormData({ ...formData, documentFiles: [...(formData.documentFiles || []), ...files] });
+                  }}
                   style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', fontSize: '0.88rem', color: '#1e293b', cursor: 'pointer' }}
                 />
-                {formData.documentFile && (
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    ✅ {formData.documentFile.name}
-                    <button type="button" onClick={() => setFormData({ ...formData, documentFile: null })} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.75rem', padding: '0 0.3rem' }}>✕ Remove</button>
+                
+                {/* List selected files */}
+                {formData.documentFiles && formData.documentFiles.length > 0 && (
+                  <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    {formData.documentFiles.map((file, idx) => (
+                      <div key={idx} style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        ✅ {file.name || 'Existing File'}
+                        <button type="button" onClick={() => {
+                          const newFiles = [...formData.documentFiles];
+                          newFiles.splice(idx, 1);
+                          setFormData({ ...formData, documentFiles: newFiles });
+                        }} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.75rem', padding: '0 0.3rem' }}>✕ Remove</button>
+                      </div>
+                    ))}
                   </div>
                 )}
-                {isDrawerEditMode && formData._id && !formData.documentFile && bills.find(b => b._id === formData._id)?.documentFile && (
+                
+                {/* Show existing files in edit mode */}
+                {isDrawerEditMode && formData._id && bills.find(b => b._id === formData._id)?.documentFiles?.length > 0 && (
                   <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    ✅ File already uploaded (<a href={`${SERVER_URL}/${bills.find(b => b._id === formData._id)?.documentFile.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" style={{color: 'var(--accent-primary)'}}>View</a>). Uploading a new one will replace it.
+                    ✅ Previous files attached ({bills.find(b => b._id === formData._id).documentFiles.length}). Re-uploading will replace them.
                   </div>
                 )}
               </div>

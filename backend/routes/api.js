@@ -165,8 +165,9 @@ router.post('/:type', upload.any(), async (req, res) => {
         if (file.fieldname === 'paymentProof') {
           // Save payment proof path at top-level (not inside details)
           req.body.paymentProof = file.path;
-        } else if (file.fieldname === 'documentFile') {
-          req.body.documentFile = file.path;
+        } else if (file.fieldname === 'documentFiles') {
+          if (!req.body.documentFiles) req.body.documentFiles = [];
+          req.body.documentFiles.push(file.path);
         } else {
           // fieldname will be something like 'file_rentalAgreement'
           const keyName = file.fieldname.replace('file_', '');
@@ -218,8 +219,9 @@ router.put('/:type/:id', upload.any(), async (req, res) => {
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         const fieldName = file.fieldname; 
-        if (fieldName === 'documentFile') {
-          req.body.documentFile = file.path;
+        if (fieldName === 'documentFiles') {
+          if (!req.body.documentFiles) req.body.documentFiles = [];
+          req.body.documentFiles.push(file.path);
         } else if (fieldName.startsWith('file_')) {
           const detailKey = fieldName.replace('file_', '');
           req.body.details[detailKey] = file.path;
