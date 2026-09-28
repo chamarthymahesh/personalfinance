@@ -41,6 +41,9 @@ const ExpenseSchema = new mongoose.Schema({
   },
   paymentProof: {
     type: String
+  },
+  documentFile: {
+    type: String
   }
 }, { timestamps: true });
 

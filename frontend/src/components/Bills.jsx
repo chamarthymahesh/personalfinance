@@ -152,7 +152,8 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         ...formData,
         title: '',
         amount: '',
-        details: {}
+        details: {},
+        documentFile: null
       });
       return;
     }
@@ -211,7 +212,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         formData.frequency = 'One-time';
       }
 
-      const hasFiles = Object.values(formData.details).some(val => val instanceof File) || !!formData.paymentProofFile;
+      const hasFiles = Object.values(formData.details).some(val => val instanceof File) || !!formData.paymentProofFile || !!formData.documentFile;
 
       let requestData;
       let requestConfig = {};
@@ -226,6 +227,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
         if (formData.remarks) data.append('remarks', formData.remarks);
         // Attach payment proof if provided
         if (formData.paymentProofFile) data.append('paymentProof', formData.paymentProofFile);
+        if (formData.documentFile) data.append('documentFile', formData.documentFile);
 
         const textDetails = {};
         Object.keys(formData.details).forEach(key => {
@@ -251,7 +253,7 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
 
       const savedCategory = formData.category;
       setFormData({
-        title: '', category: selectedCategory ? selectedCategory.name : (categories[0]?.name || ''), amount: '', frequency: 'Monthly', dueDate: '', remarks: '', details: {}, paymentProofFile: null
+        title: '', category: selectedCategory ? selectedCategory.name : (categories[0]?.name || ''), amount: '', frequency: 'Monthly', dueDate: '', remarks: '', details: {}, paymentProofFile: null, documentFile: null
       });
       setIsNewBiller(true);
       setIsDrawerOpen(false);
@@ -683,6 +685,11 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                     </span>
                   );
                 })}
+                {bill.documentFile && (
+                  <a href={`${SERVER_URL}/${bill.documentFile.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                    📎 View Document
+                  </a>
+                )}
               </div>
             </div>
 
@@ -1107,6 +1114,33 @@ export default function Bills({ selectedCategory, pendingPaymentBill, clearPendi
                   rows={4}
                   style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'white', fontSize: '0.95rem', color: '#1e293b', resize: 'vertical' }}
                 />
+              </div>
+
+              {/* ---- Document Upload (For All Categories) ---- */}
+              <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'rgba(59,130,246,0.05)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--accent-primary)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  📎 Attachment / Document (optional)
+                </label>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                  Upload Policy Document, Invoice, or Bill PDF/Image.
+                </div>
+                <input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  onChange={(e) => setFormData({ ...formData, documentFile: e.target.files[0] || null })}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', fontSize: '0.88rem', color: '#1e293b', cursor: 'pointer' }}
+                />
+                {formData.documentFile && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    ✅ {formData.documentFile.name}
+                    <button type="button" onClick={() => setFormData({ ...formData, documentFile: null })} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.75rem', padding: '0 0.3rem' }}>✕ Remove</button>
+                  </div>
+                )}
+                {isDrawerEditMode && formData._id && !formData.documentFile && bills.find(b => b._id === formData._id)?.documentFile && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    ✅ File already uploaded (<a href={`${SERVER_URL}/${bills.find(b => b._id === formData._id)?.documentFile.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" style={{color: 'var(--accent-primary)'}}>View</a>). Uploading a new one will replace it.
+                  </div>
+                )}
               </div>
 
               {/* ---- Payment Proof Upload (shown for Other expenses) ---- */}
