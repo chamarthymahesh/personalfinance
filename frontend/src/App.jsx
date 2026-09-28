@@ -104,6 +104,10 @@ const groupedCategories = useMemo(() => {
   };
 
   const getSidebarIcon = (categoryName) => {
+    // Helper: find Salary Advance category (used for special tab)
+    const salaryCat = categories.find(c => c.name.toLowerCase().includes('salary')) || null;
+    // Helper: find Postal Insurance category (optional)
+    const postalCat = categories.find(c => c.name.toLowerCase().includes('postal')) || null;
     const name = categoryName?.toLowerCase() || '';
     if (name.includes('rent')) return <Home size={18} />;
     if (name.includes('electricity')) return <Zap size={18} />;
@@ -128,14 +132,19 @@ const groupedCategories = useMemo(() => {
     return <Receipt size={18} />;
   };
 
-  const handleNewEntry = () => {
-    // Select the 'Other expenses' category or default to the first one available
-    const targetCat = categories.find(c => c.name === 'Other expenses') || categories[0];
-    if (targetCat) {
-      setActiveTab(targetCat._id);
+// New handler for Salary Advance & Postal Insurance entry
+  const handleSalaryAdvanceEntry = () => {
+    const salaryCat = categories.find(c => c.name.toLowerCase().includes('salary')) || categories[0];
+    if (salaryCat) {
+      setActiveTab(salaryCat._id);
+      // optional: trigger new entry modal after a short delay
       setTimeout(() => window.dispatchEvent(new Event('open-new-entry')), 100);
     }
   };
+
+  // Inside renderContent function, add a new case
+  // (We'll modify the switch block later)
+
 
   const renderContent = () => {
     switch (activeTab) {
@@ -272,7 +281,13 @@ const groupedCategories = useMemo(() => {
                 <HandCoins size={18} />
                 {!isSidebarCollapsed && <span>Lending & Borrowing</span>}
               </div>
-            </li>
+          </li>
+          <li className={`nav-link ${activeTab === 'salary-advance' ? 'active' : ''}`} onClick={handleSalaryAdvanceEntry} style={{justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'}}>
+            <div className="nav-link-content">
+              <Mail size={18} />
+              {!isSidebarCollapsed && <span>Salary Advance & Insurance</span>}
+            </div>
+          </li>
         </ul>
 
         {/* Dynamic Category Sections — scrollable area */}
