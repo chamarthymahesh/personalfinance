@@ -137,6 +137,19 @@ export default function PlotPurchase() {
     }
   };
 
+  const handleDeletePlot = async (plotId) => {
+    if (!window.confirm('Delete this plot? This action cannot be undone.')) return;
+    try {
+      await axios.delete(`${API_URL}/plots/${plotId}`);
+      if (selectedPlot && selectedPlot._id === plotId) {
+        setSelectedPlot(null);
+      }
+      await fetchPlots();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete plot');
+    }
+  };
+
   const handleUploadPlotDocument = async (file) => {
     if (!file) return;
     try {
@@ -335,10 +348,15 @@ export default function PlotPurchase() {
             <>
               {/* Plot summary */}
               <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
-                <button onClick={() => { setPlotForm({ plotName: selectedPlot.plotName, location: selectedPlot.location || '', area: selectedPlot.area || '', totalYards: selectedPlot.totalYards || '', registeredYards: selectedPlot.registeredYards || '', pricePerYard: selectedPlot.pricePerYard || '', totalCost: selectedPlot.totalCost, purchaseDate: selectedPlot.purchaseDate ? selectedPlot.purchaseDate.split('T')[0] : '', registrationDate: selectedPlot.registrationDate ? selectedPlot.registrationDate.split('T')[0] : '', notes: selectedPlot.notes || '', partners: selectedPlot.partners.map(p => ({ name: p.name, sharePercent: p.sharePercent })) }); setShowEditPlot(true); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  Edit
-                </button>
-                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', paddingRight: '4rem' }}>
+                <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => { setPlotForm({ plotName: selectedPlot.plotName, location: selectedPlot.location || '', area: selectedPlot.area || '', totalYards: selectedPlot.totalYards || '', registeredYards: selectedPlot.registeredYards || '', pricePerYard: selectedPlot.pricePerYard || '', totalCost: selectedPlot.totalCost, purchaseDate: selectedPlot.purchaseDate ? selectedPlot.purchaseDate.split('T')[0] : '', registrationDate: selectedPlot.registrationDate ? selectedPlot.registrationDate.split('T')[0] : '', notes: selectedPlot.notes || '', partners: selectedPlot.partners.map(p => ({ name: p.name, sharePercent: p.sharePercent })) }); setShowEditPlot(true); }} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Edit
+                  </button>
+                  <button onClick={() => handleDeletePlot(selectedPlot._id)} style={{ background: 'none', border: '1px solid #fecaca', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: '#b91c1c', fontSize: '0.8rem' }}>
+                    Delete
+                  </button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', paddingRight: '10rem' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                       <MapPin size={16} color="var(--accent-primary)" />
