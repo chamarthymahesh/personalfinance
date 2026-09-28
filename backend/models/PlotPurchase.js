@@ -55,6 +55,17 @@ const SaleChargeSchema = new mongoose.Schema({
   notes: { type: String, default: '' }
 }, { timestamps: true });
 
+// Each payment received from buyer for a sale
+const SalePaymentSchema = new mongoose.Schema({
+  amount: { type: Number, required: true },
+  date: { type: Date, required: true, default: Date.now },
+  paymentMode: { type: String, default: '' },
+  transactionId: { type: String, default: '' },
+  proofFile: { type: String, default: '' },
+  proofUrl: { type: String, default: '' },
+  notes: { type: String, default: '' }
+}, { timestamps: true });
+
 // Sale record
 const SaleSchema = new mongoose.Schema({
   buyerName: { type: String, default: '' },
@@ -66,7 +77,8 @@ const SaleSchema = new mongoose.Schema({
   totalSaleCharges: { type: Number, default: 0 },
   netSaleAmount: { type: Number, default: 0 },
   notes: { type: String, default: '' },
-  proofFile: { type: String, default: '' }
+  proofFile: { type: String, default: '' },
+  paymentsReceived: [SalePaymentSchema]
 }, { timestamps: true });
 
 // The main plot document

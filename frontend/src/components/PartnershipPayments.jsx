@@ -52,7 +52,10 @@ export default function PlotPurchase() {
   const [showAddAgent, setShowAddAgent] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddSale, setShowAddSale] = useState(false);
+  const [showAddSalePayment, setShowAddSalePayment] = useState(false);
   const [expandedPartner, setExpandedPartner] = useState(null);
+  const [expandedSale, setExpandedSale] = useState(null);
+  const [activeSaleId, setActiveSaleId] = useState(null);
   const [activeSection, setActiveSection] = useState('payments'); // payments | agents | expenses | sales | report
   const [error, setError] = useState('');
 
@@ -85,6 +88,12 @@ export default function PlotPurchase() {
     saleCharges: [{ description: '', amount: '' }]
   });
   const [saleFile, setSaleFile] = useState(null);
+
+  const [salePaymentForm, setSalePaymentForm] = useState({
+    amount: '', date: new Date().toISOString().split('T')[0],
+    paymentMode: 'Bank Transfer', transactionId: '', notes: ''
+  });
+  const [salePaymentFile, setSalePaymentFile] = useState(null);
 
   // Fetch plots
   const fetchPlots = async () => {
@@ -284,6 +293,32 @@ export default function PlotPurchase() {
       await axios.delete(`${API_URL}/plots/${selectedPlot._id}/sales/${saleId}`);
       await fetchPlots();
     } catch { setError('Failed to delete sale'); }
+  };
+
+  const handleAddSalePayment = async (e) => {
+    e.preventDefault();
+    if (!activeSaleId) return;
+    try {
+      const fd = new FormData();
+      Object.entries(salePaymentForm).forEach(([k, v]) => fd.append(k, v));
+      if (salePaymentFile) fd.append('proofFile', salePaymentFile);
+      await axios.post(`${API_URL}/plots/${selectedPlot._id}/sales/${activeSaleId}/payments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await fetchPlots();
+      setShowAddSalePayment(false);
+      setSalePaymentFile(null);
+      setSalePaymentForm({ amount: '', date: new Date().toISOString().split('T')[0], paymentMode: 'Bank Transfer', transactionId: '', notes: '' });
+      setActiveSaleId(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to add sale payment');
+    }
+  };
+
+  const handleDeleteSalePayment = async (saleId, paymentId) => {
+    if (!window.confirm('Delete this sale payment?')) return;
+    try {
+      await axios.delete(`${API_URL}/plots/${selectedPlot._id}/sales/${saleId}/payments/${paymentId}`);
+      await fetchPlots();
+    } catch { setError('Failed to delete sale payment'); }
   };
 
   const proofLink = (item) => {
@@ -629,7 +664,11 @@ export default function PlotPurchase() {
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>No sales recorded yet.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {[...selectedPlot.sales].sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate)).map(sale => (
+                    {[...selectedPlot.sales].sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate)).map(sale => {
+                      const totalPaid = (sale.paymentsReceived || []).reduce((s, p) => s + p.amount, 0);
+                      const pending = sale.netSaleAmount - totalPaid;
+                      const paidPct = sale.netSaleAmount ? Math.min(100, Math.round((totalPaid / sale.netSaleAmount) * 100)) : 0;
+                      return (
                       <div key={sale._id} style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '1.25rem', position: 'relative' }}>
                         <button onClick={() => handleDeleteSale(sale._id)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c' }}><Trash2 size={14} /></button>
                         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingRight: '2rem' }}>
@@ -644,6 +683,16 @@ export default function PlotPurchase() {
                             <div><div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Net Sale</div><div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#15803d' }}>{fmt(sale.netSaleAmount)}</div></div>
                           </div>
                         </div>
+                        
+                        <div style={{ marginTop: '1rem', display: 'flex', gap: '1.5rem', textAlign: 'left', flexWrap: 'wrap' }}>
+                          <div><div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Received</div><div style={{ fontWeight: 700, color: '#15803d' }}>{fmt(totalPaid)}</div></div>
+                          <div><div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Pending</div><div style={{ fontWeight: 700, color: pending > 0 ? '#b91c1c' : '#15803d' }}>{fmt(pending)}</div></div>
+                        </div>
+                        <div style={{ marginTop: '0.5rem', background: 'var(--border-color)', borderRadius: '100px', height: '6px', overflow: 'hidden' }}>
+                          <div style={{ width: `${paidPct}%`, height: '100%', background: 'linear-gradient(90deg,#15803d,#22c55e)', borderRadius: '100px', transition: 'width 0.5s' }} />
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{paidPct}% paid</div>
+
                         {(sale.saleCharges || []).length > 0 && (
                           <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             <strong>Charges:</strong>{' '}
@@ -652,8 +701,41 @@ export default function PlotPurchase() {
                         )}
                         {sale.notes && <div style={{ marginTop: '0.3rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Note: {sale.notes}</div>}
                         {sale.proofFile && <a href={`${SERVER_URL}${sale.proofFile}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.8rem', marginTop: '0.3rem' }}><Eye size={12} /> View Proof</a>}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                          <button onClick={() => setExpandedSale(expandedSale === sale._id ? null : sale._id)}
+                            style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            {expandedSale === sale._id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            {expandedSale === sale._id ? 'Hide Payments' : 'View Payments'} ({(sale.paymentsReceived || []).length})
+                          </button>
+                          <button onClick={() => { setActiveSaleId(sale._id); setShowAddSalePayment(true); }}
+                            style={{ background: '#15803d', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.4rem 0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                            <Plus size={12} /> Add Payment
+                          </button>
+                        </div>
+                        
+                        {expandedSale === sale._id && (
+                          <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {(sale.paymentsReceived || []).sort((a, b) => new Date(b.date) - new Date(a.date)).map(payment => (
+                              <div key={payment._id} style={{ background: 'rgba(0,0,0,0.03)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', position: 'relative' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ fontWeight: 600, color: '#15803d' }}>{fmt(payment.amount)}</span>
+                                  <span style={{ color: 'var(--text-muted)' }}>{new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                </div>
+                                {payment.paymentMode && <div style={{ color: 'var(--text-muted)', marginTop: '0.2rem' }}>💳 {payment.paymentMode}</div>}
+                                {payment.transactionId && <div style={{ color: 'var(--text-muted)' }}>Txn: {payment.transactionId}</div>}
+                                {payment.notes && <div style={{ color: 'var(--text-muted)' }}>📝 {payment.notes}</div>}
+                                {proofLink(payment) && <a href={proofLink(payment)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.25rem' }}><Receipt size={12} /> View Proof</a>}
+                                <button onClick={() => handleDeleteSalePayment(sale._id, payment._id)} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', padding: '0.2rem' }}><Trash2 size={13} /></button>
+                              </div>
+                            ))}
+                            {(sale.paymentsReceived || []).length === 0 && (
+                              <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem', fontSize: '0.8rem' }}>No payments yet</div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>
@@ -1110,6 +1192,44 @@ export default function PlotPurchase() {
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAddExpense(false)} style={{ padding: '0.6rem 1.2rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>Cancel</button>
                 <button type="submit" style={{ padding: '0.6rem 1.5rem', background: '#047857', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Save Expense</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Sale Payment Modal */}
+      {showAddSalePayment && selectedPlot && activeSaleId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Add Sale Payment</h2>
+              <button onClick={() => { setShowAddSalePayment(false); setActiveSaleId(null); setSalePaymentFile(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAddSalePayment}>
+              {[
+                { label: 'Amount Received (₹) *', key: 'amount', type: 'number', placeholder: 'e.g. 100000', required: true },
+                { label: 'Date', key: 'date', type: 'date' },
+                { label: 'Transaction ID / UTR', key: 'transactionId', placeholder: 'Bank ref / UPI / Cheque no' },
+                { label: 'Notes', key: 'notes', placeholder: 'Any note about this payment' }
+              ].map(f => (
+                <div key={f.key} style={{ marginBottom: '1rem' }}>
+                  <label style={labelStyle}>{f.label}</label>
+                  <input type={f.type || 'text'} required={f.required} placeholder={f.placeholder}
+                    value={salePaymentForm[f.key]} onChange={e => setSalePaymentForm(p => ({ ...p, [f.key]: e.target.value }))} style={inputStyle} />
+                </div>
+              ))}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={labelStyle}>Payment Mode</label>
+                <select value={salePaymentForm.paymentMode} onChange={e => setSalePaymentForm(p => ({ ...p, paymentMode: e.target.value }))} style={inputStyle}>
+                  {['Bank Transfer', 'UPI', 'Cash', 'Cheque', 'DD'].map(m => (<option key={m} value={m}>{m}</option>))}
+                </select>
+              </div>
+              <FileUploadField label="Upload Proof (Receipt / Screenshot / PDF)" value={salePaymentFile} onChange={setSalePaymentFile} existingFile={null} />
+              
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" onClick={() => { setShowAddSalePayment(false); setActiveSaleId(null); setSalePaymentFile(null); }} style={{ padding: '0.6rem 1.2rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>Cancel</button>
+                <button type="submit" style={{ padding: '0.6rem 1.5rem', background: '#15803d', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Save Payment</button>
               </div>
             </form>
           </div>

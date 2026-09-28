@@ -154,6 +154,50 @@ router.delete('/:id/sales/:saleId', async (req, res) => {
   }
 });
 
+// POST add payment for a sale (with optional file upload)
+router.post('/:id/sales/:saleId/payments', upload.single('proofFile'), async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    const sale = plot.sales.id(req.params.saleId);
+    if (!sale) return res.status(404).json({ message: 'Sale not found' });
+    
+    const { amount, date, paymentMode, transactionId, proofUrl, notes } = req.body;
+    const proofFile = req.file ? `/uploads/plots/${req.file.filename}` : '';
+    
+    sale.paymentsReceived.push({
+      amount: Number(amount),
+      date: date ? new Date(date) : new Date(),
+      paymentMode,
+      transactionId,
+      proofUrl,
+      proofFile,
+      notes
+    });
+    
+    await plot.save();
+    res.status(201).json(plot);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE a sale payment
+router.delete('/:id/sales/:saleId/payments/:paymentId', async (req, res) => {
+  try {
+    const plot = await PlotPurchase.findById(req.params.id);
+    if (!plot) return res.status(404).json({ message: 'Plot not found' });
+    const sale = plot.sales.id(req.params.saleId);
+    if (!sale) return res.status(404).json({ message: 'Sale not found' });
+    
+    sale.paymentsReceived.id(req.params.paymentId).deleteOne();
+    await plot.save();
+    res.json(plot);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ─── PAYMENTS ───────────────────────────────────────────────────────────────
 
 // POST add payment (with optional file upload)
